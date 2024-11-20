@@ -1,26 +1,35 @@
-Goal:
-Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill, dnsviz via a recursor.
-Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz.
-NOTE: You are an utter fool and deserve to be whipped in public if you use this setup in production unaltered.
+# DNSSEC Signer street-in-a-box
 
-After you have built all docker images from the included Dockerfiles, you should be able to 'just run' docker compose up -d and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin Also: see below)
-TODO: include image builds in compose file
 
-docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
-docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
-docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound .
-docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
+> The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
+> In Dutch the word for street can be used to describe a series of connected or ordered items, like a straight in poker or in a game of dice.  
+> Here we create a straight of interconnected nameservers.
 
-After you have run docker compose up -d you should have a working dnssec signing setup.
+## Goal:
+Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
+Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
+**NOTE:** You are an utter fool and deserve to be whipped in public if you use this setup in production unaltered.
 
-A dns-client container with dig, drill, delv is also started: docker exec -it stiab-dns-client-1 bash (see below for examples!)
+After you have built all docker images from the included Dockerfiles, you should be able to 'just run' `docker compose up -d` and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. `apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin` Also: see below).  
+*TODO*: include image builds in compose file
 
-After this you can alter configs, zonefile and even swap out or add whole components to satisfy your testing and designing needs.
-NOTE: At the moment this should be considered work in progress,
-      - especially the zones TTL's and KASP policies may not be atuned.
-      - inconsistancies between components did happen. TODO: /var/lib/stiab -> /var/lib/nsd ?
-      - maybe knot should be running as root in stead of user knot? Or NSD as user nsd?
-      - nameserver configs are still unoptimized and bare bones
+    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
+    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
+    docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound .
+    docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
+
+After you have run `docker compose up -d` you should have a working dnssec signing setup.
+A dns-client container with dig, drill, delv is also started, to enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance)
+
+Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
+That should hopefully satisfy your testing and designing needs.
+
+### W.I.P alert
+**NOTE**: At the moment this should be considered work in progress.  
+ * especially the zones TTL's and KASP policies may not be atuned.  
+ * inconsistancies between components did happen. TODO: /var/lib/stiab -> /var/lib/nsd ?  
+ * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
+ * nameserver configs are still unoptimized and bare bones  
 
 A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
 For DNSSEC validation to work this root zone is DNSSEC resigned. And the recursor is primed with the fake dns rootserver instead of the real root zone.
