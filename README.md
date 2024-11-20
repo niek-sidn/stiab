@@ -27,39 +27,43 @@ That should hopefully satisfy your testing and designing needs.
 ### W.I.P alert
 **NOTE**: At the moment this should be considered work in progress.  
  * especially the zones TTL's and KASP policies may not be atuned.  
- * inconsistancies between components did happen. TODO: /var/lib/stiab -> /var/lib/nsd ?  
+ * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
  * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
  * nameserver configs are still unoptimized and bare bones  
+ * we have no TSIGs.  
+ * NSD can do validation of the zone file, we should do this.  
 
+## Fake DNS root
 A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
-For DNSSEC validation to work this root zone is DNSSEC resigned. And the recursor is primed with the fake dns rootserver instead of the real root zone.
+For DNSSEC validation to work this root zone is DNSSEC *resigned*. And the recursor is primed with the fake dns rootserver and trust-anchor instead of the real root zone and trust-anchor.
 
-A complete set of config files is included. For now these files are handcrafted and then packaged.
-The actions for handcrafting are included in this document, so you could start from scratch if you like.
-TODO: more automation in creating the config files.
+## Config files
+A complete set of working config files is included in this repository. For now these files are handcrafted.  
+The actions for handcrafting are included below, so you could start from scratch if you like that kind of thing.  
+*TODO*: more automation in creating the config files.
 
-You can/should supply an unsigned tld.zone file of your own making (but small working tld.zone is supplied).
+## Zonefile
+You can/should supply an unsigned tld.zone file of your own making. But a small working tld.zone is supplied.  
 To run a realistic setup, this tld.zone should be supplied often and with a realistic number of changes.
 
-Components:
-- nsd-zoneloader = loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer
-  TODO: output validation before notify
-- knot-signer = DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator
-- nsd-validator = DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister
-  TODO: output validation before notify
-- nsd-dister = Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup, 
-               In this setup it functions as the source of authority for TLD.
-               As such it is included in the (fake) root.zone
-- unbound-recursor = alternative dns rooted recursor that enables validation with dig, delv, drill, dnsviz
-                     root-hints: knot-fakeroot only
-- knot-fakeroot = fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone.
-                  This root.zone contains your TLD's (A, NS, DS) records.
-NOTE: files/nsd-zoneloader/zones/tld.zone holds the parent serial (pre-signing serial), update the serial if you change tld.zone.
-      If you update the zone file: docker exec stiab-nsd-zoneloader-1 nsd-control reload tld
-NOTE: knot-signer will sign, and increase the serial, but this is a separate serial from the parent serial.
-      The main reason for knot-signer to keep this separate serial is that RRSIGs expire, wether you change the parent zone or not.
-NOTE: repeated docker compose up/down's will repeatedly increment the post signing serial.
-      TODO: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS)
+## Components
+|  name          |   function                                                                                                                                                                 |
+|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|nsd-zoneloader  |loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer.                                                                    |
+|knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator                                                                                         |
+|nsd-validator   |does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister                                                                                        |
+|nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone                                                                         |
+|unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
+|knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|                                                                                                                                                                       
+|dns-client      |here we do our digging, drilling, delving.|                                                                                                                                                                            
+
+## Serials
+**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the parent serial (pre-signing serial), update this serial if you change tld.zone. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
+**NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the parent serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you change the parent zone or not.  
+**NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial.  
+*TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
+
+
 
 Prep (if running on real hardware or a dedicated host is impractical):
 --------------------------------------------------------------------
