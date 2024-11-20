@@ -1,0 +1,27 @@
+# Build file for a very basic knotd container
+# config and files to run knotd must be supplied through volumes
+# docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd . &&  docker system prune -f && docker buildx prune -f
+FROM ubuntu:latest
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
+    coreutils \
+    curl \
+    ca-certificates \
+    git-core \
+    vim \
+    dnsutils \
+    iproute2 \
+    libknot-dev \
+    knot \
+    knot-dnssecutils \
+    knot-dnsutils \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && find /var/log -type f -delete \
+&& mkdir /run/knot \
+&& mkdir /var/lib/knot/keys /var/lib/knot/zones /var/lib/knot/journal \
+&& chown --recursive knot:knot /run/knot/ /var/lib/knot /etc/knot
+
+COPY entrypoints/entrypoint_knotd.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT /entrypoint.sh

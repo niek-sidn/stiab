@@ -1,0 +1,16 @@
+# Build file for a dnsclient container that can do dig, drill, delv, dnsviz
+# DNSSEC fake root key files must be supplied through volume
+# docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
+FROM ubuntu:latest
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
+    ca-certificates \
+    dnsutils \
+    ldnsutils\
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && find /var/log -type f -delete
+
+COPY entrypoints/entrypoint_dnsclient.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT /entrypoint.sh

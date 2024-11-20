@@ -1,0 +1,16 @@
+# Build file for a very basic unbound container
+# config and files to run unbound must be supplied through volumes
+# docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
+FROM ubuntu:latest
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
+    ca-certificates \
+    unbound \
+    openssl \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && find /var/log -type f -delete
+
+COPY entrypoints/entrypoint_unbound.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT /entrypoint.sh

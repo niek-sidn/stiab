@@ -1,0 +1,7 @@
+$ORIGIN tld.
+$TTL 30m
+@       SOA     ns1.nic hostmaster 1000 5m 1m 10m 4m
+        NS      ns1.nic
+ns1.nic A       172.20.0.14
+bar.nic A       127.0.0.2
+foo.nic A       127.0.0.3

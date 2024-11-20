@@ -1,0 +1,86 @@
+services:
+  nsd-zoneloader:
+    hostname: nsd-zoneloader
+    image: "nsd-stiab:latest"
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.10
+    volumes:
+      - ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro
+      - ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw
+      - ./files/nsd-zoneloader/zones:/var/lib/stiab/zones:rw
+  knot-signer:
+    hostname: knot-signer
+    image: "knotd-stiab:latest"
+    depends_on:
+      - nsd-zoneloader
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.11
+    volumes:
+      - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro
+      - ./files/knot-signer/journal:/var/lib/knot/journal:rw
+      - ./files/knot-signer/zones:/var/lib/knot/zones:rw
+      - ./files/knot-signer/keys:/var/lib/knot/keys:rw
+  knot-fakeroot:
+    hostname: knot-fakeroot
+    image: "knotd-stiab:latest"
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.13
+    volumes:
+      - ./files/knot-fakeroot/knot.conf:/etc/knot/knot.conf:ro
+      - ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw
+      - ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw
+      - ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw
+  nsd-validator:
+    hostname: nsd-validator
+    image: "nsd-stiab:latest"
+    depends_on:
+      - knot-signer
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.12
+    volumes:
+      - ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro
+      - ./files/nsd-validator/keys:/var/lib/stiab/keys:rw
+      - ./files/nsd-validator/zones:/var/lib/stiab/zones:rw
+  nsd-dister:
+    hostname: nsd-dister
+    image: "nsd-stiab:latest"
+    depends_on:
+      - nsd-validator
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.14
+    volumes:
+      - ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro
+      - ./files/nsd-dister/keys:/var/lib/stiab/keys:rw
+      - ./files/nsd-dister/zones:/var/lib/stiab/zones:rw
+  unbound-recursor:
+    hostname: unbound-recursor
+    image: "unbound-stiab:latest"
+    depends_on:
+      - nsd-dister
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.15
+    volumes:
+      - ./files/unbound-recursor/conf:/etc/unbound/:ro
+  dns-client:
+    hostname: dns-client
+    image: "dnsclient-stiab:latest"
+    depends_on:
+      - unbound-recursor
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.16
+    volumes:
+      - ./files/dns-client/conf:/var/lib/dns/conf:ro
+      - ./files/dns-client/results:/var/lib/dns/results:rw
+networks:
+  stiabnet:
+    enable_ipv6: false
+    ipam:
+      config:
+      - subnet: 172.20.0.0/24
