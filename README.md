@@ -1,16 +1,15 @@
 Goal:
 Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill, dnsviz via a recursor.
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz.
+NOTE: You are an utter fool and deserve to be whipped in public if you use this setup in production unaltered.
 
 After you have built all docker images from the included Dockerfiles, you should be able to 'just run' docker compose up -d and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin Also: see below)
 TODO: include image builds in compose file
 
-Build images
---------------------------------------------
 docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
 docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
 docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound .
-
+docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
 
 After you have run docker compose up -d you should have a working dnssec signing setup.
 
@@ -20,8 +19,8 @@ After this you can alter configs, zonefile and even swap out or add whole compon
 NOTE: At the moment this should be considered work in progress,
       - especially the zones TTL's and KASP policies may not be atuned.
       - inconsistancies between components did happen. TODO: /var/lib/stiab -> /var/lib/nsd ?
+      - maybe knot should be running as root in stead of user knot? Or NSD as user nsd?
       - nameserver configs are still unoptimized and bare bones
-NOTE: You are an utter fool and deserve to be whipped in public if you use this setup in production unaltered.
 
 A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
 For DNSSEC validation to work this root zone is DNSSEC resigned. And the recursor is primed with the fake dns rootserver instead of the real root zone.
@@ -90,7 +89,9 @@ systemctl enable --now docker
 
 Steps to create configs/zones/keys should you want to roll your own
 -------------------------------------------------------------------
-create:
+NOTE: if you want to just use the provided "example" configs, please skip and see below.
+
+roll your own:
 mkdir stiab && de stiab
 mkdir dockerfiles entrypoints files
 
@@ -204,11 +205,14 @@ After creation of config and keys, tar-gzip the whole stiab directory
 
 deploy
 --------------------------------------------------------------------------------------------------
-tar xzf stiab.tgz
+tar xzf stiab.tgz / git clone https://github.com/niek-sidn/stiab.git
 cd stiab
+DID YOU BUILD THE DOCKER IMAGES?
 docker compose up -d
 docker compose logs
 
+prove it works
+--------------------------------------------------------------------------------------------------
 docker exec -it stiab-dns-client-1 bash
 dig +multi +dnssec soa . @172.20.0.15
 dig +multi +dnssec soa tld. @172.20.0.15
