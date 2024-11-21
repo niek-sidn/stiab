@@ -8,7 +8,8 @@
 ## Goal:
 Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
-**NOTE:** You are an utter fool and deserve to be whipped in public if you use this setup in production unaltered.
+> [!CAUTION]
+> You are an utter fool and deserve to be whipped in public if you use this setup in production. Use this software at your own risk.
 
 After you have built all docker images from the included Dockerfiles, you should be able to 'just run' `docker compose up -d` and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. `apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin` Also: see below).  
 *TODO*: include image builds in compose file
@@ -64,14 +65,17 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 *TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
 
 
-
-Prep (if running on real hardware or a dedicated host is impractical):
+## Preparations
+If running on real hardware or a dedicated host is impractical you can use your favorite 
 --------------------------------------------------------------------
 sudo -i
 incus launch images:ubuntu/noble --vm signerstraat
 incus shell signerstraat
 apt-get update && apt-get upgrade -y
 
+## install Git
+Should your host not have git already:
+`apt-get update && apt-get install git   # or possibly git-core`
 
 Install docker-ce
 ----------------------------
