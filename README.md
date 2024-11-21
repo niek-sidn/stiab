@@ -26,8 +26,9 @@ Once up and running you can start altering configs, zonefiles and even swap out 
 That should hopefully satisfy your testing and designing needs.
 
 ### W.I.P alert
-> [!CAUTION]: At the moment this should be considered work in progress.
-> 
+> [!CAUTION]
+> At the moment this should be considered work in progress.
+
 > * especially the zones TTL's and KASP policies may not be atuned.  
 > * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
 > * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
