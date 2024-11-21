@@ -65,48 +65,76 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 *TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
 
 
-## Preparations
-If running on real hardware or a dedicated host is impractical you can use your favorite 
---------------------------------------------------------------------
-sudo -i
-incus launch images:ubuntu/noble --vm signerstraat
-incus shell signerstraat
-apt-get update && apt-get upgrade -y
+# Preparations
+## host
+If running on real hardware or a dedicated host is impractical, you can use your favorite local virtualization tooling. Mine is Incus.
 
-## install Git
-Should your host not have git already:
+    sudo -i
+    incus launch images:ubuntu/noble --vm stiab
+    incus shell stiab
+    apt-get update && apt-get upgrade -y
+
+## Install Git
+Should your host not have git already:   
 `apt-get update && apt-get install git   # or possibly git-core`
 
-Install docker-ce
-----------------------------
-Source: adapted from https://docs.docker.com/engine/install/ubuntu/
+## Install docker-ce
+(Source: adapted from [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/))  
 
-# Add Docker's official GPG key:
-apt-get install -y ca-certificates curl
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
+Add Docker's official GPG key:
 
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    apt-get install -y ca-certificates curl
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
 
-apt-get update
-apt-get upgrade -y
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+Add the repository to Apt sources:
 
-
-Start docker service
----------------------------------------------------------
-systemctl start docker
-OR (for persistent docker service)
-systemctl enable --now docker
+    echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    
+    apt-get update
+    apt-get upgrade -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 
-Steps to create configs/zones/keys should you want to roll your own
--------------------------------------------------------------------
-NOTE: if you want to just use the provided "example" configs, please skip and see below.
+## Start docker service
+`systemctl start docker`   
+OR (for persistent docker service)   
+`systemctl enable --now docker`
+
+# Deploy
+**REMINDER** Did you build the docker images?
+
+    git clone https://github.com/niek-sidn/stiab.git
+    cd stiab
+    docker compose up -d
+    docker compose logs
+
+## Prove it works
+
+    docker exec -it stiab-dns-client-1 bash
+    dig +multi +dnssec soa . @172.20.0.15
+    dig +multi +dnssec soa tld. @172.20.0.15
+    dig +multi +dnssec soa sidn.nl. @172.20.0.15
+    dig +multi +dnssec soa doesntexist.tld. @172.20.0.15
+    dig +multi +dnssec soa brokendnssec.net. @172.20.0.15
+    dig +multi +dnssec soa brokendnssec.net. @172.20.0.15 +cdflag
+    drill -S tld. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T tld. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T sidn.nl. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T doesntexist.tld. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T brokendnssec.net. @172.20.0.15 soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 sidn.nl soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 tld. soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 doesntexist.tld. soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 brokendnssec.net. soa +cdflag
+    
+    (docker compose down)
+
+# Steps to create configs/zones/keys should you want to roll your own
+NOTE: Only needed if you do not want to just use the provided "example" configs.
 
 roll your own:
 mkdir stiab && de stiab
