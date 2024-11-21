@@ -46,7 +46,7 @@ The actions for handcrafting are included below, so you could start from scratch
 *TODO*: more automation in creating the config files.
 
 ## Zonefile
-You can/should supply an unsigned tld.zone file of your own making. But a small working tld.zone is supplied.  
+You can/should supply an unsigned tld.zone file of your own making. A small working tld.zone is supplied as an example.  
 To run a realistic setup, this tld.zone should be supplied often and with a realistic number of changes.
 
 ## Components
@@ -65,7 +65,6 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 **NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the parent serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you change the parent zone or not.  
 **NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial.  
 *TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
-
 
 # Preparations
 ## host
@@ -107,7 +106,8 @@ OR (for persistent docker service)
 `systemctl enable --now docker`
 
 # Deploy
-**REMINDER** Did you build the docker images?
+> [!REMINDER]
+> Did you build the docker images?
 
     git clone https://github.com/niek-sidn/stiab.git
     cd stiab
@@ -136,147 +136,128 @@ OR (for persistent docker service)
     (docker compose down)
 
 # Steps to create configs/zones/keys should you want to roll your own
-NOTE: Only needed if you do not want to just use the provided "example" configs.
+**NOTE**: Only needed if you do not want to use the provided "example" configs.
+Use the files in the repository for guidance.
 
-roll your own:
-mkdir stiab && de stiab
-mkdir dockerfiles entrypoints files
+    mkdir stiab && cd stiab
+    mkdir dockerfiles entrypoints files
+    vim compose.yml   # or do this as a last step
 
-mkdir files/nsd-zoneloader
-mkdir files/nsd-zoneloader/zones files/nsd-zoneloader/keys
-vim files/nsd-zoneloader/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-vim files/nsd-zoneloader/zones/tld.zone
-vim dockerfiles/Dockerfile.nsd
-docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
-docker run --rm -it --entrypoint bash -v ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
-  nsd-control-setup -d /var/lib/stiab/keys/
-  exit
+## nsd-zoneloader
+    mkdir files/nsd-zoneloader
+    mkdir files/nsd-zoneloader/zones files/nsd-zoneloader/keys
+    vim files/nsd-zoneloader/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
+    vim files/nsd-zoneloader/zones/tld.zone
+    vim dockerfiles/Dockerfile.nsd
+    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
+    docker run --rm -it --entrypoint bash -v ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
-mkdir files/knot-signer
-mkdir files/knot-signer/zones files/knot-signer/journal
-vim files/knot-signer/knot.conf
-(files/knot-signer/zones/tld.zone is created automatically after notify from nsd-zoneloader)
-(if not hostname == knot-fakeroot: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
-vim dockerfiles/Dockerfile.knotd
-docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
-docker run --rm -it --entrypoint bash -v ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-signer/keys:/var/lib/knot/keys:rw -v ./files/knot-signer/zones:/var/lib/knot/zones:rw -v ./files/knot-signer/journal:/var/lib/knot/journal:rw knotd-stiab:latest
-  chown --recursive knot:knot /var/lib/knot
-  keymgr tld. generate algorithm=13 ksk=yes zsk=no
-  keymgr tld. generate algorithm=13 ksk=no zsk=yes
-  keymgr tld ds | grep '13 2' > /var/lib/knot/keys/ds.tld   # for root zone
-  exit
+    nsd-control-setup -d /var/lib/stiab/keys/
+    exit
 
-mkdir files/knot-fakeroot
-mkdir files/knot-fakeroot/zones files/knot-fakeroot/journal
-vim files/knot-fakeroot/knot.conf
-(using the same docker image as knot-signer so no build here)
-docker run --rm -it --entrypoint bash -v ./files/knot-fakeroot/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw -v ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw -v ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw knotd-stiab:latest
-  chown --recursive knot:knot /var/lib/knot
-  keymgr . generate algorithm=13 ksk=yes zsk=no
-  keymgr . generate algorithm=13 ksk=no zsk=yes
-  keymgr . ds | grep '13 2' > /var/lib/knot/keys/ds.root   # for unbound trust anchor
-  for KEYID in `keymgr . list | awk '{print $2}'`; do keymgr . dnskey $KEYID; done > /var/lib/knot/keys/dnskey.root   # for root zone
-  exit
-curl https://www.internic.net/domain/root.zone > files/signed-root.zone
-cp files/signed-root.zone files/unsigned-root.zone
-NOTE: leaving arpa. for 172.20.0.0/24 alone.
-vim files/unsigned-root.zone
-:g/IN\sRRSIG/d                                           # remove all RRSIGs
-:g/IN\sNSEC/d                                            # remove all NSEC
-:g/^\.\s.*IN\sZONEMD/d                                   # remove root's ZONEMD
-:g/^\.\s.*IN\sDNSKEY/d                                   # remove root's DNSKEY (so need to supply our own)
-:%s/a.root-servers.net./a.root-servers.tld./             # avoid confusion by using own tld
-:g/^a.root-servers.tld.\s.*AAAA/d                        # no ipv6 at the moment...
-:g/^\.\s.*\sIN\sNS\s.\.root-servers\.net\.$/d            # remove all root-servers.net NS's so only a.root-servers.tld left
-:%s/nstld.verisign-grs.com./hostmaster./                 # replace SOA mail address to avoid confusion
-:%s/1800 900 604800 86400/900 60 3600 60/                # replace SOA timings
-:%s/^\(a.root-servers.tld.\s.*\sA\s\).*/\1172.20.0.13/   # replace ipv4 address of a.root-servers.tld (formally a.root-servers.net)
-:2
-:r files/knot-fakeroot/keys/dnskey.root
-:4
-o
-tld.                    172800  IN      NS      ns1.nic.tld.
-tld.                    86400   IN      DS      54231 13 2 b2c729851fbf44105868c94fbfd98a79cc63992f63acd03d3fd25b873dd294b5 # files/knot-signer/keys/ds.root
-ns1.nic.tld.            172800  IN      A       172.20.0.14
+## knot-signer
+    mkdir files/knot-signer
+    mkdir files/knot-signer/zones files/knot-signer/journal
+    vim files/knot-signer/knot.conf
+    (files/knot-signer/zones/tld.zone is created automatically after notify from nsd-zoneloader)
+    (if not hostname == knot-fakeroot: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
+    vim dockerfiles/Dockerfile.knotd
+    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
+    docker run --rm -it --entrypoint bash -v ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-signer/keys:/var/lib/knot/keys:rw -v ./files/knot-signer/zones:/var/lib/knot/zones:rw -v ./files/knot-signer/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
-cp files/unsigned-root.zone files/knot-fakeroot/zones/root.zone
+    chown --recursive knot:knot /var/lib/knot
+    keymgr tld generate algorithm=13 ksk=yes zsk=no
+    keymgr tld generate algorithm=13 ksk=no zsk=yes
+    keymgr tld ds | grep '13 2' > /var/lib/knot/keys/ds.tld   # for root zone
+    exit
 
+## knot-fakeroot
+    mkdir files/knot-fakeroot
+    mkdir files/knot-fakeroot/zones files/knot-fakeroot/journal
+    vim files/knot-fakeroot/knot.conf
+    (using the same docker image as knot-signer so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/knot-fakeroot/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw -v ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw -v ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
-mkdir files/nsd-validator
-mkdir files/nsd-validator/zones files/nsd-validator/keys
-vim files/nsd-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-(files/nsd-validator/zones/tld.zone is created automatically after notify from knot-signer)
-(using the same docker image as nsd-zoneloader so no build here)
-docker run --rm -it --entrypoint bash -v ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
-  nsd-control-setup -d /var/lib/stiab/keys/
-  exit
-TODO: actual validation of the signed zone
+    chown --recursive knot:knot /var/lib/knot
+    keymgr . generate algorithm=13 ksk=yes zsk=no
+    keymgr . generate algorithm=13 ksk=no zsk=yes
+    keymgr . ds | grep '13 2' > /var/lib/knot/keys/ds.root   # for unbound trust anchor
+    for KEYID in `keymgr . list | awk '{print $2}'`; do keymgr . dnskey $KEYID; done > /var/lib/knot/keys/dnskey.root   # for root zone
+    exit
+
+#### Now create an unsigned root zone file for adding TLDs and resigning
+    curl https://www.internic.net/domain/root.zone > files/signed-root.zone
+    mv files/signed-root.zone files/unsigned-root.zone
+    NOTE: leaving arpa. for 172.20.0.0/24 alone.
+    vim files/unsigned-root.zone
+    :g/IN\sRRSIG/d                                           # remove all RRSIGs
+    :g/IN\sNSEC/d                                            # remove all NSEC
+    :g/^\.\s.*IN\sZONEMD/d                                   # remove root's ZONEMD
+    :g/^\.\s.*IN\sDNSKEY/d                                   # remove root's DNSKEY (so need to supply our own)
+    :%s/a.root-servers.net./a.root-servers.tld./             # avoid confusion by using own tld
+    :g/^a.root-servers.tld.\s.*AAAA/d                        # no ipv6 at the moment...
+    :g/^\.\s.*\sIN\sNS\s.\.root-servers\.net\.$/d            # remove all root-servers.net NS's so only a.root-servers.tld left
+    :%s/nstld.verisign-grs.com./hostmaster./                 # replace SOA mail address to avoid confusion
+    :%s/1800 900 604800 86400/900 60 3600 60/                # replace SOA timings
+    :%s/^\(a.root-servers.tld.\s.*\sA\s\).*/\1172.20.0.13/   # replace ipv4 address of a.root-servers.tld (formally a.root-servers.net)
+    :2
+    :r files/knot-fakeroot/keys/dnskey.root
+    :4
+    o
+    tld.                    172800  IN      NS      ns1.nic.tld.
+    tld.                    86400   IN      DS      54231 13 2 b2c729851fbf44105868c94fbfd98a79cc63992f63acd03d3fd25b873dd294b5 # files/knot-signer/keys/ds.root
+    ns1.nic.tld.            172800  IN      A       172.20.0.14
+    cp files/unsigned-root.zone files/knot-fakeroot/zones/root.zone
 
 
-mkdir files/nsd-dister
-mkdir files/nsd-dister/zones files/nsd-dister/keys
-vim files/nsd-dister/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-(files/nsd-dister/zones/tld.zone is created automatically after notify from nsd-validator)
-(using the same docker image as nsd-zoneloader so no build here)
-docker run --rm -it --entrypoint bash -v ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-dister/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
-  nsd-control-setup -d /var/lib/stiab/keys/
-  exit
+## nsd-validator
+    mkdir files/nsd-validator
+    mkdir files/nsd-validator/zones files/nsd-validator/keys
+    vim files/nsd-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
+    (files/nsd-validator/zones/tld.zone is created automatically after notify from knot-signer)
+    (using the same docker image as nsd-zoneloader so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
+    nsd-control-setup -d /var/lib/stiab/keys/
+    exit
+    TODO: actual validation of the signed zone
 
-mkdir files/unbound-recursor
-mkdir files/unbound-recursor/conf
-files/unbound-recursor/conf/fake-root.hints
-files/unbound-recursor/conf/unbound.conf
-files/unbound-recursor/conf/unbound.conf.d
-files/unbound-recursor/conf/unbound.conf.d/remote-control.conf
-files/unbound-recursor/conf/unbound.conf.d/base.conf  # trust-anchor: see: cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*'
-docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
-docker run --rm -it --entrypoint bash -v ./files/unbound-recursor/conf:/etc/unbound/:rw unbound-stiab:latest
+## nsd-dister
+    mkdir files/nsd-dister
+    mkdir files/nsd-dister/zones files/nsd-dister/keys
+    vim files/nsd-dister/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
+    (files/nsd-dister/zones/tld.zone is created automatically after notify from nsd-validator)
+    (using the same docker image as nsd-zoneloader so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-dister/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
+
+    nsd-control-setup -d /var/lib/stiab/keys/
+    exit
+
+## unbound-recursor
+    mkdir files/unbound-recursor
+    mkdir files/unbound-recursor/conf
+    vim files/unbound-recursor/conf/fake-root.hints
+    vim files/unbound-recursor/conf/unbound.conf
+    vim files/unbound-recursor/conf/unbound.conf.d
+    vim files/unbound-recursor/conf/unbound.conf.d/remote-control.conf
+    vim files/unbound-recursor/conf/unbound.conf.d/base.conf  # trust-anchor: see: cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*'
+    docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
+   docker run --rm -it --entrypoint bash -v ./files/unbound-recursor/conf:/etc/unbound/:rw unbound-stiab:latest
+
    unbound-control-setup
+   exit
 
+## dns-client
+   mkdir files/dns-client
+   mkdir files/dns-client/conf files/dns-client/results
+   cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*' > files/dns-client/conf/root.key
+   vim files/dns-client/conf/root.key-delv  # same root.key, but differently packaged
+   cp files/unbound-recursor/conf/fake-root.hints files/dns-client/conf/
+   docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
+   (a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see below))
 
-mkdir files/dns-client
-mkdir files/dns-client/conf files/dns-client/results
-cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*' > files/dns-client/conf/root.key
-vim files/dns-client/conf/root.key-delv  # same root.key, but differently packaged
-cp files/unbound-recursor/conf/fake-root.hints files/dns-client/conf/
-docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
-(a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see below))
+*TODO*: dnsviz
 
-TODO: dnsviz
-
-
-
-After creation of config and keys, tar-gzip the whole stiab directory
-
-
-deploy
---------------------------------------------------------------------------------------------------
-tar xzf stiab.tgz / git clone https://github.com/niek-sidn/stiab.git
-cd stiab
-DID YOU BUILD THE DOCKER IMAGES?
-docker compose up -d
-docker compose logs
-
-prove it works
---------------------------------------------------------------------------------------------------
-docker exec -it stiab-dns-client-1 bash
-dig +multi +dnssec soa . @172.20.0.15
-dig +multi +dnssec soa tld. @172.20.0.15
-dig +multi +dnssec soa sidn.nl. @172.20.0.15
-dig +multi +dnssec soa doesntexist.tld. @172.20.0.15
-dig +multi +dnssec soa brokendnssec.net. @172.20.0.15
-dig +multi +dnssec soa brokendnssec.net. @172.20.0.15 +cdflag
-drill -S tld. @172.20.0.15 soa
-drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T tld. @172.20.0.15 soa
-drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T sidn.nl. @172.20.0.15 soa
-drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T doesntexist.tld. @172.20.0.15 soa
-drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T brokendnssec.net. @172.20.0.15 soa
-delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 sidn.nl soa
-delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 tld. soa
-delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 doesntexist.tld. soa
-delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 brokendnssec.net. soa +cdflag
-
-docker compose down
+# EOF
 
 
