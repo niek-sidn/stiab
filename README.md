@@ -1,4 +1,4 @@
-# DNSSEC Signer street-in-a-box
+# Stiab: DNSSEC Signer street-in-a-box
 
 
 > The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
@@ -26,13 +26,14 @@ Once up and running you can start altering configs, zonefiles and even swap out 
 That should hopefully satisfy your testing and designing needs.
 
 ### W.I.P alert
-**NOTE**: At the moment this should be considered work in progress.  
- * especially the zones TTL's and KASP policies may not be atuned.  
- * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
- * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
- * nameserver configs are still unoptimized and bare bones  
- * we have no TSIGs.  
- * NSD can do validation of the zone file, we should do this.  
+> [!CAUTION]: At the moment this should be considered work in progress.
+> 
+> * especially the zones TTL's and KASP policies may not be atuned.  
+> * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
+> * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
+> * nameserver configs are still unoptimized and bare bones  
+> * we have no TSIGs.  
+> * NSD can do validation of the zone file, we should do this.  
 
 ## Fake DNS root
 A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
