@@ -106,7 +106,7 @@ OR (for persistent docker service)
 `systemctl enable --now docker`
 
 # Deploy
-> [!REMINDER]
+> [!CAUTION]
 > Did you build the docker images?
 
     git clone https://github.com/niek-sidn/stiab.git
@@ -242,10 +242,10 @@ Use the files in the repository for guidance.
     vim files/unbound-recursor/conf/unbound.conf.d/remote-control.conf
     vim files/unbound-recursor/conf/unbound.conf.d/base.conf  # trust-anchor: see: cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*'
     docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
-   docker run --rm -it --entrypoint bash -v ./files/unbound-recursor/conf:/etc/unbound/:rw unbound-stiab:latest
+    docker run --rm -it --entrypoint bash -v ./files/unbound-recursor/conf:/etc/unbound/:rw unbound-stiab:latest
 
-   unbound-control-setup
-   exit
+    unbound-control-setup
+    exit
 
 ## dns-client
     mkdir files/dns-client
