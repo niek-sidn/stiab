@@ -4,6 +4,7 @@ $TTL 30m
 	NS	ns1.nic
 	TXT	"This top level domain does not really exist"
 sidn	NS	ns1.sidn
+sidn	DS	41290 13 2 8ffb3cf37d663e88bf492e37d6cf7b42145f14d2a4ffc28cda831a80815fd0d4
 ns1.nic A	172.20.0.14
 bar.nic A	127.0.0.2
 foo.nic	A	127.0.0.3
