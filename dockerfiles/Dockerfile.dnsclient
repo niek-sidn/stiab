@@ -27,6 +27,5 @@ RUN cd /root && \
     pip install -U pip && \
     pip install dnspython pygraphviz m2crypto dnsviz cryptography
 
-COPY entrypoints/entrypoint_dnsclient.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT /entrypoint.sh
+COPY --chmod=755 entrypoints/entrypoint_dnsclient.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

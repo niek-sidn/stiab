@@ -31,6 +31,5 @@ apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
 find /var/log -type f -delete
 
-COPY entrypoints/entrypoint_nsd.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT /entrypoint.sh
+COPY --chmod=755 entrypoints/entrypoint_nsd.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

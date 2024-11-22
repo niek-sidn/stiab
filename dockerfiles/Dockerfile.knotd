@@ -22,6 +22,5 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
 && mkdir /var/lib/knot/keys /var/lib/knot/zones /var/lib/knot/journal \
 && chown --recursive knot:knot /run/knot/ /var/lib/knot /etc/knot
 
-COPY entrypoints/entrypoint_knotd.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT /entrypoint.sh
+COPY --chmod=755 entrypoints/entrypoint_knotd.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
