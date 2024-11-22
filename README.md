@@ -51,14 +51,15 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 
 ## Components
 |  name          |   function                                                                                                                                                                 |
-|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|nsd-zoneloader  |loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer.                                                                    |
-|knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator                                                                                         |
-|nsd-validator   |does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister                                                                                        |
-|nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone                                                                         |
+|----------------|-------------------------------------------------------------------------------------------------------------------------|
+|nsd-zoneloader  |loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer.|
+|knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator|
+|nsd-validator   |does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister|
+|nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone|
 |unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
-|knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|                                                                                                                                                                       
-|dns-client      |here we do our digging, drilling, delving.|                                                                                                                                                                            
+|knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
+|dns-client      |here we do our digging, drilling, delving.|
+|knot-secondlevel|nameserver to serve a secondlevel domain under TLD|
 
 ## Serials
 **NOTE**: files/nsd-zoneloader/zones/tld.zone holds the parent serial (pre-signing serial), update this serial if you change tld.zone. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
@@ -165,6 +166,19 @@ Use the files in the repository for guidance.
     mkdir stiab && cd stiab
     mkdir dockerfiles entrypoints files
     vim compose.yml   # or do this as a last step
+
+## knot-secondlevel
+    mkdir files/knot-secondlevel
+    mkdir files/knot-secondlevel/zones files/knot-secondlevel/journal
+    vim files/knot-secondlevel/knot.conf
+    # (using the same docker image as knot-signer so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/knot-secondlevel/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-secondlevel/keys:/var/lib/knot/keys:rw -v ./files/knot-secondlevel/zones:/var/lib/knot/zones:rw -v ./files/knot-secondlevel/journal:/var/lib/knot/journal:rw knotd-stiab:latest
+
+    chown --recursive knot:knot /var/lib/knot
+    keymgr sidn.tld generate algorithm=13 ksk=yes zsk=no
+    keymgr sidn.tld generate algorithm=13 ksk=no zsk=yes
+    keymgr sidn.tld ds | grep '13 2' > /var/lib/knot/keys/ds.sidn.tld   # for tld zone
+    exit
 
 ## nsd-zoneloader
     mkdir files/nsd-zoneloader
@@ -279,6 +293,7 @@ Use the files in the repository for guidance.
     docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
     # NOTE: if you are only interested in DNSviz output, you could maybe also use their official Docker image: https://github.com/dnsviz/dnsviz.
     # (a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see above))
+
 
 # EOF
 

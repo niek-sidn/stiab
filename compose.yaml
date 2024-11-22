@@ -78,6 +78,17 @@ services:
     volumes:
       - ./files/dns-client/conf:/var/lib/dns/conf:ro
       - ./files/dns-client/results:/var/lib/dns/results:rw
+  knot-secondlevel:
+    hostname: knot-secondlevel
+    image: "knotd-stiab:latest"
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.17
+    volumes:
+      - ./files/knot-secondlevel/knot.conf:/etc/knot/knot.conf:ro
+      - ./files/knot-secondlevel/journal:/var/lib/knot/journal:rw
+      - ./files/knot-secondlevel/zones:/var/lib/knot/zones:rw
+      - ./files/knot-secondlevel/keys:/var/lib/knot/keys:rw
 networks:
   stiabnet:
     enable_ipv6: false
