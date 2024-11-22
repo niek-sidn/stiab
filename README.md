@@ -20,7 +20,7 @@ After you have built all docker images from the included Dockerfiles, you should
     docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
 
 After you have run `docker compose up -d` you should have a working dnssec signing setup.
-A dns-client container with dig, drill, delv is also started, to enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance)
+A dns-client container with dig, drill, delv and DNSviz is also started, to enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance)
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
 That should hopefully satisfy your testing and designing needs.
@@ -58,13 +58,13 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 |nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone|
 |unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
 |knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
-|dns-client      |here we do our digging, drilling, delving.|
+|dns-client      |here we do our digging, drilling, delving, vizzing.|
 |knot-secondlevel|nameserver to serve a secondlevel domain under TLD|
 
 ## Serials
 **NOTE**: files/nsd-zoneloader/zones/tld.zone holds the parent serial (pre-signing serial), update this serial if you change tld.zone. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
 **NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the parent serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you change the parent zone or not.  
-**NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial.  
+**NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial. Also key roll times are linked to the key age from key creation, roll times do not reset.  
 *TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
 
 # Preparations
@@ -146,7 +146,7 @@ OR (for persistent docker service)
     cd root/dnsviz/ && . bin/activate
     dnsviz probe -4 -p -s 172.20.0.15 sidn.tld. > /var/lib/dns/results/sidn.tld.json
     dnsviz probe -4 -p -s 172.20.0.15 sidn.nl. > /var/lib/dns/results/sidn.nl.json
-    dnsviz probe -4 -p -s 172.20.0.15 blah.tld. > /var/lib/dns/results/doesntexist.tld.json
+    dnsviz probe -4 -p -s 172.20.0.15 doesntexist.tld. > /var/lib/dns/results/doesntexist.tld.json
     dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.tld.json -o /var/lib/dns/results/sidn.tld.png -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.png -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/doesntexist.tld.json -o /var/lib/dns/results/doesntexist.tld.png -t /var/lib/dns/conf/root.key
@@ -166,8 +166,8 @@ OR (for persistent docker service)
     # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.html /root/Downloads/
     cd /root/Downloads/
     ristretto sidn.tld.png
-    sed -i "s#file:///root/dnsviz/share/dnsviz/css/dnsviz.css#dnsviz.css#" /root/Downloads/sidn.nl.html
-    sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.nl.html
+    sed -i "s#file:///root/dnsviz/share/dnsviz/css/dnsviz.css#dnsviz.css#" /root/Downloads/sidn.tld.html
+    sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.tld.html
     firefox sidn.tld.html
     
     (docker compose down)
