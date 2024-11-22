@@ -71,8 +71,8 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 If running on real hardware or a dedicated host is impractical, you can use your favorite local virtualization tooling. Mine is Incus.
 
     sudo -i
-    incus launch images:ubuntu/noble --vm stiab
-    incus shell stiab
+    incus launch images:ubuntu/noble --vm stiab-vm
+    incus shell stiab-vm
     apt-get update && apt-get upgrade -y
 
 ## Install Git
@@ -115,7 +115,7 @@ OR (for persistent docker service)
     docker compose logs
 
 ## Prove it works
-
+#### dig/drill/delv
     docker exec -it stiab-dns-client-1 bash
     dig +multi +dnssec soa . @172.20.0.15
     dig +multi +dnssec soa tld. @172.20.0.15
@@ -132,8 +132,31 @@ OR (for persistent docker service)
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 tld. soa
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 doesntexist.tld. soa
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 brokendnssec.net. soa +cdflag
+
+#### DNSviz
+    cd root/dnsviz/
+    . bin/activate
+    dnsviz probe -4 -p -s 172.20.0.15 nl. > /var/lib/dns/results/nl.json
+    dnsviz probe -4 -p -s 172.20.0.15 sidn.nl. > /var/lib/dns/results/sidn.nl.json
+    dnsviz probe -4 -p -s 172.20.0.15 tld. > /var/lib/dns/results/tld.json
+    dnsviz probe -4 -p -s 172.20.0.15 blah.tld. > /var/lib/dns/results/blah.tld.json
+    dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.png -t /var/lib/dns/conf/root.key
+    dnsviz graph -Thtml -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.html -t /var/lib/dns/conf/root.key
+    cp ./share/dnsviz/js/dnsviz.js /var/lib/dns/results/
+    cp ./share/dnsviz/css/dnsviz.css /var/lib/dns/results/
+    
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.png /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.js /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.css /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.html /root/Downloads/
+    cd /root/Downloads/
+    ristretto sidn.nl.png
+    sed -i "s#file:///root/dnsviz/share/dnsviz/css/dnsviz.css#dnsviz.css#" /root/Downloads/sidn.nl.html
+    sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.nl.html
+    firefox sidn.nl.html
     
     (docker compose down)
+
 
 # Steps to create configs/zones/keys should you want to roll your own
 **NOTE**: Only needed if you do not want to use the provided "example" configs.
@@ -254,9 +277,8 @@ Use the files in the repository for guidance.
     vim files/dns-client/conf/root.key-delv  # same root.key, but differently packaged
     cp files/unbound-recursor/conf/fake-root.hints files/dns-client/conf/
     docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
-    # (a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see below))
-
-*TODO*: dnsviz
+    # NOTE: if you are only interested in DNSviz output, you could maybe also use their official Docker image: https://github.com/dnsviz/dnsviz.
+    # (a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see above))
 
 # EOF
 
