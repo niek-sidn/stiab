@@ -120,41 +120,55 @@ OR (for persistent docker service)
     docker exec -it stiab-dns-client-1 bash
     dig +multi +dnssec soa . @172.20.0.15
     dig +multi +dnssec soa tld. @172.20.0.15
+    dig +multi +dnssec soa nl. @172.20.0.15
+    dig +multi +dnssec soa sidn.tld. @172.20.0.15
     dig +multi +dnssec soa sidn.nl. @172.20.0.15
     dig +multi +dnssec soa doesntexist.tld. @172.20.0.15
     dig +multi +dnssec soa brokendnssec.net. @172.20.0.15
     dig +multi +dnssec soa brokendnssec.net. @172.20.0.15 +cdflag
     drill -S tld. @172.20.0.15 soa
+    drill -S sidn.tld. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T . @172.20.0.15 soa
     drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T tld. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T nl. @172.20.0.15 soa
+    drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T sidn.tld. @172.20.0.15 soa
     drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T sidn.nl. @172.20.0.15 soa
     drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T doesntexist.tld. @172.20.0.15 soa
     drill -k /var/lib/dns/conf/root.key -r /var/lib/dns/conf/fake-root.hints -T brokendnssec.net. @172.20.0.15 soa
-    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 sidn.nl soa
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 tld. soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 nl. soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 sidn.tld soa
+    delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 sidn.nl soa
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 doesntexist.tld. soa
     delv +vtrace -a /var/lib/dns/conf/root.key-delv @172.20.0.15 brokendnssec.net. soa +cdflag
 
 #### DNSviz
-    cd root/dnsviz/
-    . bin/activate
-    dnsviz probe -4 -p -s 172.20.0.15 nl. > /var/lib/dns/results/nl.json
+    cd root/dnsviz/ && . bin/activate
+    dnsviz probe -4 -p -s 172.20.0.15 sidn.tld. > /var/lib/dns/results/sidn.tld.json
     dnsviz probe -4 -p -s 172.20.0.15 sidn.nl. > /var/lib/dns/results/sidn.nl.json
-    dnsviz probe -4 -p -s 172.20.0.15 tld. > /var/lib/dns/results/tld.json
-    dnsviz probe -4 -p -s 172.20.0.15 blah.tld. > /var/lib/dns/results/blah.tld.json
+    dnsviz probe -4 -p -s 172.20.0.15 blah.tld. > /var/lib/dns/results/doesntexist.tld.json
+    dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.tld.json -o /var/lib/dns/results/sidn.tld.png -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.png -t /var/lib/dns/conf/root.key
+    dnsviz graph -Tpng -P -r /var/lib/dns/results/doesntexist.tld.json -o /var/lib/dns/results/doesntexist.tld.png -t /var/lib/dns/conf/root.key
+    dnsviz graph -Thtml -P -r /var/lib/dns/results/sidn.tld.json -o /var/lib/dns/results/sidn.tld.html -t /var/lib/dns/conf/root.key
     dnsviz graph -Thtml -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.html -t /var/lib/dns/conf/root.key
+    dnsviz graph -Thtml -P -r /var/lib/dns/results/doesntexist.tld.json -o /var/lib/dns/results/doesntexist.tld.html -t /var/lib/dns/conf/root.key
     cp ./share/dnsviz/js/dnsviz.js /var/lib/dns/results/
     cp ./share/dnsviz/css/dnsviz.css /var/lib/dns/results/
     
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.png /root/Downloads/
     # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.png /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.png /root/Downloads/
     # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.js /root/Downloads/
     # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.css /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.html /root/Downloads/
     # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.html /root/Downloads/
+    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.html /root/Downloads/
     cd /root/Downloads/
-    ristretto sidn.nl.png
+    ristretto sidn.tld.png
     sed -i "s#file:///root/dnsviz/share/dnsviz/css/dnsviz.css#dnsviz.css#" /root/Downloads/sidn.nl.html
     sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.nl.html
-    firefox sidn.nl.html
+    firefox sidn.tld.html
     
     (docker compose down)
 
@@ -184,7 +198,7 @@ Use the files in the repository for guidance.
     mkdir files/nsd-zoneloader
     mkdir files/nsd-zoneloader/zones files/nsd-zoneloader/keys
     vim files/nsd-zoneloader/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-    vim files/nsd-zoneloader/zones/tld.zone
+    vim files/nsd-zoneloader/zones/tld.zone  # include files/knot-secondlevel/keys/ds.sidn.tld and sidn.tld NS and glue
     vim dockerfiles/Dockerfile.nsd
     docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
     docker run --rm -it --entrypoint bash -v ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
@@ -197,7 +211,7 @@ Use the files in the repository for guidance.
     mkdir files/knot-signer/zones files/knot-signer/journal
     vim files/knot-signer/knot.conf
     # (files/knot-signer/zones/tld.zone is created automatically after notify from nsd-zoneloader)
-    # (if not hostname == knot-fakeroot: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
+    # (if not hostname == knot-fakeroot/knot-secondlevel: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
     vim dockerfiles/Dockerfile.knotd
     docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
     docker run --rm -it --entrypoint bash -v ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-signer/keys:/var/lib/knot/keys:rw -v ./files/knot-signer/zones:/var/lib/knot/zones:rw -v ./files/knot-signer/journal:/var/lib/knot/journal:rw knotd-stiab:latest
