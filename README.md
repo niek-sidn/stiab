@@ -2,7 +2,7 @@
 
 
 > The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
-> In Dutch the word for street can be used to describe a series of connected or ordered items, like a straight in poker or in a game of dice.  
+> In Dutch the word for street (straat) can be used to describe a series of connected or ordered items, like a straight in poker or in a game of dice.  
 > Here we create a straight of interconnected nameservers.
 
 ## Goal:
