@@ -107,10 +107,12 @@ OR (for persistent docker service)
 `systemctl enable --now docker`
 
 # Deploy
+
+    git clone https://github.com/niek-sidn/stiab.git
+
 > [!CAUTION]
 > Did you build the docker images?
 
-    git clone https://github.com/niek-sidn/stiab.git
     cd stiab
     docker compose up -d
     docker compose logs
