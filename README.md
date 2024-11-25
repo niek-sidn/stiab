@@ -8,46 +8,47 @@
 ## Goal:
 Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
-> [!CAUTION]
-> You are an utter fool and deserve to be whipped in public if you use this setup in production. Use this software at your own risk.
 
-After you have built all docker images from the included Dockerfiles, you should be able to 'just run' `docker compose up -d` and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. `apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin` Also: see below).  
-*TODO*: include image builds in compose file
-
-    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
-    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
-    docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound .
-    docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
-
-After you have run `docker compose up -d` you should have a working dnssec signing setup.
-A dns-client container with dig, drill, delv and DNSviz is also started, to enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance)
+After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
+Provided your host has Git and Docker (see below for guidance).
+(TL;DR `apt-get install -y git-core docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`)  
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
 That should hopefully satisfy your testing and designing needs.
-
-### W.I.P alert
-> [!CAUTION]
-> At the moment this should be considered work in progress.
-
-> * especially the zones TTL's and KASP policies may not be atuned.  
-> * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
-> * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
-> * nameserver configs are still unoptimized and bare bones  
-> * we have no TSIGs.  
-> * NSD can do validation of the zone file, we should do this.  
-
-## Fake DNS root
-A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
-For DNSSEC validation to work this root zone is DNSSEC *resigned*. And the recursor is primed with the fake dns rootserver and trust-anchor instead of the real root zone and trust-anchor.
 
 ## Config files
 A complete set of working config files is included in this repository. For now these files are handcrafted.  
 The actions for handcrafting are included below, so you could start from scratch if you like that kind of thing.  
 *TODO*: more automation in creating the config files.
 
+### W.I.P alert
+> [!CAUTION]
+> At the moment this should be considered work in progress.  
+> You are an utter fool and deserve to be whipped in public if you use this setup in production.  
+> Use this software at your own risk.  
+> * especially the zones TTL's and KASP policies may not be fully atuned.  
+> * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
+> * maybe Knotd should be running as root in stead of user knot? Or NSD as user nsd?   
+> * nameserver configs are still unoptimized and bare bones  
+> * we have no TSIGs.  
+> * NSD can do validation of the zone file, we should do this.  
+> * Also see the issues of this repo.
+
+
+## DNSSEC keys and validation
+This signing setup cannot use the actual DNSSEC signing keys for the DNS root of course, and instead uses our own DNSSEC root signing keys.
+The added TLD ".tld" also uses its own DNSSEC signing keys.
+To include the new TLD delegation in a DNS root zone, a fake dns rootserver is included.
+This server is a "self contained" dnssec signer, that serves the "november 2024" root zone containing all existing TLDs, and any we invented ourselves.
+For DNSSEC validation to work this root zone is DNSSEC *resigned* with our own signing keys.  
+A specially prepared Unbound DNSSEC validating recursive nameserver is started that knows about the fake DNS root and trusts its DNSSEC signing keys, instead of the real root zone and trust-anchor. Please note: because of the resigning of the DNS root, all existing TLDs, and any we invented ourselves can be used with this recursor.  
+To do validations a dns-client container, with dig, drill, delv and DNSviz is also started. To enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance and example commands).
+
+
 ## Zonefile
 You can/should supply an unsigned tld.zone file of your own making. A small working tld.zone is supplied as an example.  
 To run a realistic setup, this tld.zone should be supplied often and with a realistic number of changes.
+Also for extra validation realism: a DNSSEC signing second level nameserver is started that serves the sidn.tld zone. Feel free to change its name and zonefile.
 
 ## Components
 |  name          |   function                                                                                                                                                                 |
@@ -59,15 +60,14 @@ To run a realistic setup, this tld.zone should be supplied often and with a real
 |unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
 |knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
 |dns-client      |here we do our digging, drilling, delving, vizzing.|
-|knot-secondlevel|nameserver to serve a secondlevel domain under TLD|
+|knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
 
 ## Serials
-**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the parent serial (pre-signing serial), update this serial if you change tld.zone. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
-**NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the parent serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you change the parent zone or not.  
-**NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial. Also key roll times are linked to the key age from key creation, roll times do not reset.  
-*TODO*: why? It can only be /var/lib/knot/keys/*.mdb, but removing these results in new keys at every docker compose up (and thus a new DS etc.)
+**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging somewhat confusingly named "parent" serial), update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
+**NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the pre-signing serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you changed the parent zone or not.  
+**NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial. This is because we keep the /var/lib/knot/keys/\*.mdb between restarts. Why not remove these files? Because this would also result in creating new keys at every docker compose up (and thus a new DS in the root dns zone, and the recursor). This is too inconvenient at the moment, with the configs being handcrafted. Another consequence of keeping Knotds \*.mdb files between restarts is that DNSSEC key roll times do not reset. They are linked to the key age from key creationwhich is recorded in the \*.mdb files. This means that an unexpected (but harmless) ZSK key roll could start immediately after deploy. This is for example visible as an extra zsk in DNSviz. Do not remove this extra key, Knotd is planning on using it in the near future.   
 
-# Preparations
+# Preparations before deployment
 ## host
 If running on real hardware or a dedicated host is impractical, you can use your favorite local virtualization tooling. Mine is Incus.
 
@@ -107,20 +107,15 @@ OR (for persistent docker service)
 `systemctl enable --now docker`
 
 # Deploy
-
+## pull and build/start
     git clone https://github.com/niek-sidn/stiab.git
     cd stiab
-
-> [!CAUTION]
-> Did you build the docker images?
-
-    cd stiab
-    docker compose up -d
+    docker compose up -d --build
     docker compose logs
 
 ## Prove it works
-#### dig/drill/delv
     docker exec -it stiab-dns-client-1 bash
+#### Dig/Drill/Delv
     dig +multi +dnssec soa . @172.20.0.15
     dig +multi +dnssec soa tld. @172.20.0.15
     dig +multi +dnssec soa nl. @172.20.0.15
@@ -158,26 +153,28 @@ OR (for persistent docker service)
     dnsviz graph -Thtml -P -r /var/lib/dns/results/doesntexist.tld.json -o /var/lib/dns/results/doesntexist.tld.html -t /var/lib/dns/conf/root.key
     cp ./share/dnsviz/js/dnsviz.js /var/lib/dns/results/
     cp ./share/dnsviz/css/dnsviz.css /var/lib/dns/results/
+
+Now get the resulting files to a host that can display pictures and run a browser.  
+If you are using an incus/lxd VM pull the files to your laptop:
     
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.png /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.png /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.png /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.js /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.css /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.html /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.html /root/Downloads/
-    # if using incus/lxd: incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.html /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.png /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.png /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.png /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.js /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/dnsviz.css /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.tld.html /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/sidn.nl.html /root/Downloads/
+    incus file pull stiab-vm/root/stiab/files/dns-client/results/doesntexist.tld.html /root/Downloads/
     cd /root/Downloads/
     ristretto sidn.tld.png
     sed -i "s#file:///root/dnsviz/share/dnsviz/css/dnsviz.css#dnsviz.css#" /root/Downloads/sidn.tld.html
     sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.tld.html
     firefox sidn.tld.html
     
-    (docker compose down)
 
-
-# Steps to create configs/zones/keys should you want to roll your own
-**NOTE**: Only needed if you do not want to use the provided "example" configs.
+# Create your own config files by hand
+## Steps to create configs/zones/keys should you want to roll your own
+**NOTE**: Only needed if you do *not* want to use the provided "example" configs.  
 Use the files in the repository for guidance.
 
     mkdir stiab && cd stiab
@@ -188,7 +185,7 @@ Use the files in the repository for guidance.
     mkdir files/knot-secondlevel
     mkdir files/knot-secondlevel/zones files/knot-secondlevel/journal
     vim files/knot-secondlevel/knot.conf
-    # (using the same docker image as knot-signer so no build here)
+    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
     docker run --rm -it --entrypoint bash -v ./files/knot-secondlevel/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-secondlevel/keys:/var/lib/knot/keys:rw -v ./files/knot-secondlevel/zones:/var/lib/knot/zones:rw -v ./files/knot-secondlevel/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
     chown --recursive knot:knot /var/lib/knot
@@ -216,7 +213,7 @@ Use the files in the repository for guidance.
     # (files/knot-signer/zones/tld.zone is created automatically after notify from nsd-zoneloader)
     # (if not hostname == knot-fakeroot/knot-secondlevel: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
     vim dockerfiles/Dockerfile.knotd
-    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
+    # (using the same docker image as knot-secondlevel so no build here)
     docker run --rm -it --entrypoint bash -v ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-signer/keys:/var/lib/knot/keys:rw -v ./files/knot-signer/zones:/var/lib/knot/zones:rw -v ./files/knot-signer/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
     chown --recursive knot:knot /var/lib/knot
@@ -229,7 +226,7 @@ Use the files in the repository for guidance.
     mkdir files/knot-fakeroot
     mkdir files/knot-fakeroot/zones files/knot-fakeroot/journal
     vim files/knot-fakeroot/knot.conf
-    # (using the same docker image as knot-signer so no build here)
+    # (using the same docker image as knot-secondlevel so no build here)
     docker run --rm -it --entrypoint bash -v ./files/knot-fakeroot/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw -v ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw -v ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
     chown --recursive knot:knot /var/lib/knot
