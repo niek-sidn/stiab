@@ -8,46 +8,47 @@
 ## Goal:
 Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
-> [!CAUTION]
-> You are an utter fool and deserve to be whipped in public if you use this setup in production. Use this software at your own risk.
 
-After you have built all docker images from the included Dockerfiles, you should be able to 'just run' `docker compose up -d` and get a working dnssec signing setup. Provided your host has Docker of course. (E.g. `apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin` Also: see below).  
-*TODO*: include image builds in compose file
-
-    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
-    docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
-    docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound .
-    docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient .
-
-After you have run `docker compose up -d` you should have a working dnssec signing setup.
-A dns-client container with dig, drill, delv and DNSviz is also started, to enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance)
+After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
+Provided your host has Git and Docker (see below for guidance).
+(TL;DR `apt-get install -y git-core docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`)  
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
 That should hopefully satisfy your testing and designing needs.
-
-### W.I.P alert
-> [!CAUTION]
-> At the moment this should be considered work in progress.
-
-> * especially the zones TTL's and KASP policies may not be atuned.  
-> * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
-> * maybe knot should be running as root in stead of user knot? Or NSD as user nsd?   
-> * nameserver configs are still unoptimized and bare bones  
-> * we have no TSIGs.  
-> * NSD can do validation of the zone file, we should do this.  
-
-## Fake DNS root
-A fake dns rootserver is included. This server is a "self contained" dnssec signer, that serves the root zone containing all existing TLDs, and any you invent yourself.
-For DNSSEC validation to work this root zone is DNSSEC *resigned*. And the recursor is primed with the fake dns rootserver and trust-anchor instead of the real root zone and trust-anchor.
 
 ## Config files
 A complete set of working config files is included in this repository. For now these files are handcrafted.  
 The actions for handcrafting are included below, so you could start from scratch if you like that kind of thing.  
 *TODO*: more automation in creating the config files.
 
+### W.I.P alert
+> [!CAUTION]
+> At the moment this should be considered work in progress.  
+> You are an utter fool and deserve to be whipped in public if you use this setup in production.  
+> Use this software at your own risk.  
+> * especially the zones TTL's and KASP policies may not be fully atuned.  
+> * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
+> * maybe Knotd should be running as root in stead of user knot? Or NSD as user nsd?   
+> * nameserver configs are still unoptimized and bare bones  
+> * we have no TSIGs.  
+> * NSD can do validation of the zone file, we should do this.  
+> * Also see the issues of this repo.
+
+
+## DNSSEC keys and validation
+This signing setup cannot use the actual DNSSEC signing keys for the DNS root of course, and instead uses our own DNSSEC root signing keys.
+The added TLD ".tld" also uses its own DNSSEC signing keys.
+To include the new TLD delegation in a DNS root zone, a fake dns rootserver is included.
+This server is a "self contained" dnssec signer, that serves the "november 2024" root zone containing all existing TLDs, and any we invented ourselves.
+For DNSSEC validation to work this root zone is DNSSEC *resigned* with our own signing keys.  
+A specially prepared Unbound DNSSEC validating recursive nameserver is started that knows about the fake DNS root and trusts its DNSSEC signing keys, instead of the real root zone and trust-anchor. Please note: because of the resigning of the DNS root, all existing TLDs, and any we invented ourselves can be used with this recursor.  
+To do validations a dns-client container, with dig, drill, delv and DNSviz is also started. To enter it: `docker exec -it stiab-dns-client-1 bash` (Or see below for some more guidance and example commands).
+
+
 ## Zonefile
 You can/should supply an unsigned tld.zone file of your own making. A small working tld.zone is supplied as an example.  
 To run a realistic setup, this tld.zone should be supplied often and with a realistic number of changes.
+Also for extra validation realism: a DNSSEC signing second level nameserver is started that serves the sidn.tld zone. Feel free to change its name and zonefile.
 
 ## Components
 |  name          |   function                                                                                                                                                                 |
@@ -112,10 +113,10 @@ OR (for persistent docker service)
     cd stiab
 
 > [!CAUTION]
-> Did you build the docker images?
-> if not:
->    do the manual builds (see above)
->    or next command should be docker compose up -d --build
+> Did you build the docker images?  
+> if not:  
+>    do the manual builds (see above)  
+>    or next command should be docker compose up -d --build  
 >    or accept the warnings and have an implicid --build
 
     cd stiab
