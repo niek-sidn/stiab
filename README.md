@@ -109,6 +109,7 @@ OR (for persistent docker service)
 # Deploy
 
     git clone https://github.com/niek-sidn/stiab.git
+    cd stiab
 
 > [!CAUTION]
 > Did you build the docker images?
