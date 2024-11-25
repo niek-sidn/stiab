@@ -60,7 +60,7 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 |unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
 |knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
 |dns-client      |here we do our digging, drilling, delving, vizzing.|
-|knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your vaidations|
+|knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
 
 ## Serials
 **NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging somewhat confusingly named "parent" serial), update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
