@@ -113,9 +113,13 @@ OR (for persistent docker service)
 
 > [!CAUTION]
 > Did you build the docker images?
+> if not:
+>    do the manual builds (see above)
+>    or next command should be docker compose up -d --build
+>    or accept the warnings and have an implicid --build
 
     cd stiab
-    docker compose up -d
+    docker compose up -d   # or: docker compose up -d --build
     docker compose logs
 
 ## Prove it works

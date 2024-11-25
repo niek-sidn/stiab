@@ -1,5 +1,7 @@
 services:
   nsd-zoneloader:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-zoneloader
     image: "nsd-stiab:latest"
     networks:
@@ -10,6 +12,8 @@ services:
       - ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw
       - ./files/nsd-zoneloader/zones:/var/lib/stiab/zones:rw
   knot-signer:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-signer
     image: "knotd-stiab:latest"
     depends_on:
@@ -23,6 +27,8 @@ services:
       - ./files/knot-signer/zones:/var/lib/knot/zones:rw
       - ./files/knot-signer/keys:/var/lib/knot/keys:rw
   knot-fakeroot:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-fakeroot
     image: "knotd-stiab:latest"
     networks:
@@ -34,6 +40,8 @@ services:
       - ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw
       - ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw
   nsd-validator:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-validator
     image: "nsd-stiab:latest"
     depends_on:
@@ -46,6 +54,8 @@ services:
       - ./files/nsd-validator/keys:/var/lib/stiab/keys:rw
       - ./files/nsd-validator/zones:/var/lib/stiab/zones:rw
   nsd-dister:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-dister
     image: "nsd-stiab:latest"
     depends_on:
@@ -58,6 +68,8 @@ services:
       - ./files/nsd-dister/keys:/var/lib/stiab/keys:rw
       - ./files/nsd-dister/zones:/var/lib/stiab/zones:rw
   unbound-recursor:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.unbound
     hostname: unbound-recursor
     image: "unbound-stiab:latest"
     depends_on:
@@ -68,6 +80,8 @@ services:
     volumes:
       - ./files/unbound-recursor/conf:/etc/unbound/:ro
   dns-client:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.dnsclient
     hostname: dns-client
     image: "dnsclient-stiab:latest"
     depends_on:
@@ -79,6 +93,8 @@ services:
       - ./files/dns-client/conf:/var/lib/dns/conf:ro
       - ./files/dns-client/results:/var/lib/dns/results:rw
   knot-secondlevel:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-secondlevel
     image: "knotd-stiab:latest"
     networks:
