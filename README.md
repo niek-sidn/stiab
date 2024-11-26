@@ -112,6 +112,8 @@ OR (for persistent docker service)
     cd stiab
     docker compose up -d --build
     docker compose logs
+    # Hint: do a git status, and see which files changed,
+    # look at the ./entrypoints/* scripts to see which of these changes will survive a compose down and up
 
 ## Prove it works
     docker exec -it stiab-dns-client-1 bash
@@ -171,6 +173,24 @@ If you are using an incus/lxd VM pull the files to your laptop:
     sed -i "s#file:///root/dnsviz/share/dnsviz/js/dnsviz.js#dnsviz.js#" /root/Downloads/sidn.tld.html
     firefox sidn.tld.html
     
+## Zone changes (on your docker host)
+    # sidn.tld on knot-secondlevel (change survives compose down and up)
+    vim files/knot-secondlevel/zones/sidn.tld.zone
+    docker exec stiab-knot-secondlevel-1 knotc zone-reload sidn.tld
+    docker exec stiab-knot-secondlevel-1 knotc zone-status sidn.tld
+    docker exec stiab-knot-secondlevel-1 keymgr sidn.tld list -e iso
+
+    # . on knot-fakeroot (change survives compose down and up)
+    vim files/knot-fakeroot/zones/root.zone
+    docker exec stiab-knot-fakeroot-1 knotc zone-reload .
+
+    # unsigned .tld on nsd-zoneloader
+    vim files/nsd-zoneloader/zones/tld.zone
+    docker exec stiab-nsd-zoneloader-1 nsd-control reload tld
+    docker exec stiab-knot-signer-1 knotc zone-status tld
+    docker exec stiab-knot-signer-1 keymgr tld list
+    docker exec stiab-knot-signer-1 keymgr tld list -e iso
+
 
 # Create your own config files by hand
 ## Steps to create configs/zones/keys should you want to roll your own
