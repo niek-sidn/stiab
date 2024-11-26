@@ -63,8 +63,8 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 |knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
 
 ## Serials
-**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging somewhat confusingly named "parent" serial), update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
-**NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the pre-signing serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you changed the parent zone or not.  
+**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging named as "remote serial"). Update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
+**NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the pre-signing serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you changed the unsigned zone or not.  
 **NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial. This is because we keep the /var/lib/knot/keys/\*.mdb between restarts. Why not remove these files? Because this would also result in creating new keys at every docker compose up (and thus a new DS in the root dns zone, and the recursor). This is too inconvenient at the moment, with the configs being handcrafted. Another consequence of keeping Knotds \*.mdb files between restarts is that DNSSEC key roll times do not reset. They are linked to the key age from key creationwhich is recorded in the \*.mdb files. This means that an unexpected (but harmless) ZSK key roll could start immediately after deploy. This is for example visible as an extra zsk in DNSviz. Do not remove this extra key, Knotd is planning on using it in the near future.   
 
 # Preparations before deployment
