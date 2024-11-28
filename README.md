@@ -13,7 +13,7 @@ This means that the levels above and below (DNS root and DNS lower levels) are s
 
 After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
 Provided your host has Git and Docker (see below for guidance).
-(TL;DR `apt-get install -y git-core docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`)  
+(TL;DR see the TL;DR file in this repo)
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
 This could hopefully satisfy your testing and designing needs.
@@ -33,7 +33,6 @@ The actions for handcrafting are included below, so you could start from scratch
 > * maybe Knotd should be running as root in stead of user knot? Or NSD as user nsd?   
 > * nameserver configs are still unoptimized and bare bones  
 > * we have no TSIGs.  
-> * NSD can do validation of the zone file, we should do this.  
 > * Also see the issues of this repo.
 
 
@@ -293,7 +292,6 @@ Use the files in the repository for guidance.
 
     nsd-control-setup -d /var/lib/stiab/keys/
     exit
-    # TODO: actual validation of the signed zone
 
 ## nsd-dister
     mkdir files/nsd-dister
