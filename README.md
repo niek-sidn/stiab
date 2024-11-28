@@ -8,13 +8,15 @@
 ## Goal:
 Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
+We are taking the perspective of a DNS registry (keeper of a DNS top level domain, in other words: a ccTLD or gTLD (or sTLD/tTLD))
+This means that the levels above and below (DNS root and DNS lower levels) are simplified.
 
 After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
 Provided your host has Git and Docker (see below for guidance).
 (TL;DR `apt-get install -y git-core docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`)  
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
-That should hopefully satisfy your testing and designing needs.
+This could hopefully satisfy your testing and designing needs.
 
 ## Config files
 A complete set of working config files is included in this repository. For now these files are handcrafted.  
@@ -174,17 +176,17 @@ If you are using an incus/lxd VM pull the files to your laptop:
     firefox sidn.tld.html
     
 ## Zone changes (on your docker host)
-    # sidn.tld on knot-secondlevel (change survives compose down and up)
+    # sidn.tld on knot-secondlevel (changes and resulting DNSSEC signatures will survive compose down and up)
     vim files/knot-secondlevel/zones/sidn.tld.zone
     docker exec stiab-knot-secondlevel-1 knotc zone-reload sidn.tld
     docker exec stiab-knot-secondlevel-1 knotc zone-status sidn.tld
     docker exec stiab-knot-secondlevel-1 keymgr sidn.tld list -e iso
 
-    # . on knot-fakeroot (change survives compose down and up)
+    # . on knot-fakeroot (changes and resulting DNSSEC signatures will survive compose down and up)
     vim files/knot-fakeroot/zones/root.zone
     docker exec stiab-knot-fakeroot-1 knotc zone-reload .
 
-    # unsigned .tld on nsd-zoneloader
+    # unsigned .tld on nsd-zoneloader (changes will survive compose down and up, DNSSEC signatures will not)
     vim files/nsd-zoneloader/zones/tld.zone
     docker exec stiab-nsd-zoneloader-1 nsd-control reload tld
     docker exec stiab-knot-signer-1 knotc zone-status tld
