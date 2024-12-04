@@ -14,9 +14,11 @@ This means that the levels above and below (DNS root and DNS lower levels) are s
 After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
 Provided your host has Git and Docker (see below for guidance).
 (TL;DR see the TL;DR file in this repo)
+If you already know wat you want, you can alter configs beforehand (e.g. choose a faster dnssec policy in files/knot-signer/knot.conf to really get those keys rolling!).
 
 Once up and running you can start altering configs, zonefiles and even swap out or add whole components.
-This could hopefully satisfy your testing and designing needs.
+The preferred way of working is to not make changes in the running containers, but on the files you got by cloning this repository and doing a `docker compose down` and `docker compose up -d --build` again.
+This should hopefully satisfy your testing and designing needs.
 
 ## Config files
 A complete set of working config files is included in this repository. For now these files are handcrafted.  
@@ -195,7 +197,7 @@ If you are using an incus/lxd VM pull the files to your laptop:
 
 # Create your own config files by hand
 ## Steps to create configs/zones/keys should you want to roll your own
-**NOTE**: Only needed if you do *not* want to use the provided "example" configs.  
+**NOTE**: Only needed if you do *not* want to use the provided (and fully functional!) example configs.  
 Use the files in the repository for guidance.
 
     mkdir stiab && cd stiab
@@ -254,7 +256,7 @@ Use the files in the repository for guidance.
     keymgr . generate algorithm=13 ksk=yes zsk=no
     keymgr . generate algorithm=13 ksk=no zsk=yes
     keymgr . ds | grep '13 2' > /var/lib/knot/keys/ds.root   # for unbound trust anchor
-    for KEYID in `keymgr . list | awk '{print $2}'`; do keymgr . dnskey $KEYID; done > /var/lib/knot/keys/dnskey.root   # for root zone
+    for KEYID in $(keymgr . list | awk '{print $2}'); do keymgr . dnskey $KEYID; done > /var/lib/knot/keys/dnskey.root   # for root zone
     exit
 
 #### Now create an unsigned root zone file for adding TLDs and resigning

@@ -53,6 +53,8 @@ services:
       - ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro
       - ./files/nsd-validator/keys:/var/lib/stiab/keys:rw
       - ./files/nsd-validator/zones:/var/lib/stiab/zones:rw
+      - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro  # Needed for ksignzone -v
+      - ./files/nsd-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
   nsd-dister:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd

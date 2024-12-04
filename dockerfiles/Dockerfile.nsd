@@ -14,7 +14,9 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     coreutils \
     ca-certificates \
     git-core \
-    ldnsutils
+    ldnsutils \
+    knot-dnssecutils \
+    bind9utils
 
 RUN git clone https://github.com/NLnetLabs/nsd.git && \
 cd ./nsd && \
