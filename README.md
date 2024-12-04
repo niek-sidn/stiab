@@ -27,8 +27,7 @@ The actions for handcrafting are included below, so you could start from scratch
 
 ### W.I.P alert
 > [!CAUTION]
-> At the moment this should be considered work in progress.  
-> You are an utter fool and deserve to be whipped in public if you use this setup in production.  
+> At the moment this should be considered work in progress.    
 > Use this software at your own risk.  
 > * especially the zones TTL's and KASP policies may not be fully atuned.  
 > * inconsistencies between components did happen. *TODO*: /var/lib/stiab -> /var/lib/nsd ?  
