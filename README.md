@@ -64,6 +64,30 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 |dns-client      |here we do our digging, drilling, delving, vizzing.|
 |knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
 
+```mermaid
+---
+title: STIAB
+---
+graph LR
+Z(("`zone file 
+producing 
+process`")) --> |e.g. rsync| A
+Y(("`local zone
+edits`")) --> |edits| A
+A[NSD loader] --> |ixfr| B
+B[Knot signer] --> |ixfr| C
+C[NSD validator] --> |ixfr| D
+D[NSD dister] --> |ixfr| E
+E((public NS))
+F[unboud recursor] --> |queries| D
+F --> |queries| H
+F --> |queries| I
+G[DNS client] --> |queries| F
+H[Fake DNS root]
+I["`Second level 
+domain NS`"]
+```
+
 ## Serials
 **NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging named as "remote serial"). Update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
 **NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the pre-signing serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you changed the unsigned zone or not.  
