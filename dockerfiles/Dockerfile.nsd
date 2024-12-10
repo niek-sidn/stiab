@@ -1,7 +1,7 @@
 # Build file for a very basic nsd container
 # config and files to run nsd must be supplied through volumes
 # docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd . &&  docker system prune -f && docker buildx prune -f
-FROM ubuntu:latest
+FROM ubuntu:latest AS builder
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
     build-essential \
@@ -13,28 +13,31 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     flex \
     coreutils \
     ca-certificates \
-    git-core \
-    ldnsutils \
-    knot-dnssecutils \
-    bind9utils
+    git-core
 
 RUN git clone https://github.com/NLnetLabs/nsd.git && \
-cd ./nsd && \
-git submodule update --init && \
-autoreconf -fi && \
-./configure && \
-make && \
-make install && \
-make clean && \
-cd .. && \
-rm -rf ./nsd
+    cd ./nsd && \
+    git submodule update --init && \
+    autoreconf -fi && \
+    ./configure --prefix=/ && \
+    make && \
+    make install
 
-RUN apt purge -y build-essential autoconf automake libssl-dev libevent-dev bison flex git-core \
-    cpp cpp-13 cpp-13-x86-64-linux-gnu cpp-x86-64-linux-gnu dpkg-dev g++ g++-13 g++-13-x86-64-linux-gnu \
-    g++-x86-64-linux-gnu gcc gcc-13 gcc-13-base gcc-13-x86-64-linux-gnu gcc-x86-64-linux-gnu && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-find /var/log -type f -delete
+
+FROM ubuntu:latest
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
+    coreutils \
+    ca-certificates \
+    libssl-dev \
+    libevent-dev \
+    ldnsutils \
+    knot-dnssecutils \
+    bind9utils \
+    validns
+
+COPY --from=builder /sbin/nsd* /usr/sbin/
 
 COPY --chmod=755 entrypoints/entrypoint_nsd.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
