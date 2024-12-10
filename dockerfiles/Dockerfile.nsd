@@ -34,10 +34,10 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     libevent-dev \
     ldnsutils \
     knot-dnssecutils \
-    bind9utils
+    bind9utils \
+    validns
 
 COPY --from=builder /sbin/nsd* /usr/sbin/
 
 COPY --chmod=755 entrypoints/entrypoint_nsd.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-
