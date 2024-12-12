@@ -55,14 +55,14 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 ## Components
 |  name          |   function                                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------|
-|nsd-zoneloader  |loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer.|
+|nsd-zoneloader  |Loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer. Please note: the verifier mechanism of NSD is not configured at this host, as it only applies to incoming XFRs, and not to zones configured as primary on this host.|
 |knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator|
-|nsd-validator   |does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister|
+|nsd-validator   |Does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister. Please note: the validation/verifier mechanism of NSD only applies to incoming XFRs|
 |nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone|
-|unbound-recursor|fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
-|knot-fakeroot   |fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
-|dns-client      |here we do our digging, drilling, delving, vizzing.|
-|knot-secondlevel|nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
+|unbound-recursor|Fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
+|knot-fakeroot   |Fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
+|dns-client      |Here we do our digging, drilling, delving, vizzing.|
+|knot-secondlevel|Nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
 
 ```mermaid
 ---
