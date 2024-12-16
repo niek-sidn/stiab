@@ -29,3 +29,4 @@ RUN cd /root && \
 
 COPY --chmod=755 entrypoints/entrypoint_dnsclient.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
+STOPSIGNAL SIGKILL

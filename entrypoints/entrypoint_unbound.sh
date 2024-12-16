@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-unbound -d
+exec unbound -d

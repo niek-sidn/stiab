@@ -13,4 +13,4 @@ if [ "$HOSTNAME" == nsd-validator ]; then
    # - verifier script that provides workaround for missing zonefile (files/nsd-validator/verify.sh)
    mkdir -p /var/lib/knot/zones/
 fi
-nsd -d
+exec nsd -d
