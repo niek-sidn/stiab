@@ -4,10 +4,15 @@
 FROM ubuntu:latest
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
-    apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
+    apt-get update && apt-get -y -qq install --no-install-recommends \
+    ca-certificates \
+    lsb-release \
+    wget \
+&&  wget -O /usr/share/keyrings/cznic-labs-pkg.gpg https://pkg.labs.nic.cz/gpg \
+&&  echo "deb [signed-by=/usr/share/keyrings/cznic-labs-pkg.gpg] https://pkg.labs.nic.cz/knot-dns $(lsb_release -sc) main" > /etc/apt/sources.list.d/cznic-labs-knot-dns.list \
+&&  apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
     coreutils \
     curl \
-    ca-certificates \
     git-core \
     vim \
     dnsutils \
