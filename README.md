@@ -173,6 +173,9 @@ OR (for persistent docker service)
     dnsviz probe -4 -p -s 172.20.0.15 sidn.tld. > /var/lib/dns/results/sidn.tld.json
     dnsviz probe -4 -p -s 172.20.0.15 sidn.nl. > /var/lib/dns/results/sidn.nl.json
     dnsviz probe -4 -p -s 172.20.0.15 doesntexist.tld. > /var/lib/dns/results/doesntexist.tld.json
+    dnsviz print -P -r /var/lib/dns/results/sidn.tld.json -t /var/lib/dns/conf/root.key
+    dnsviz print -P -r /var/lib/dns/results/sidn.nl.json -t /var/lib/dns/conf/root.key
+    dnsviz print -P -r /var/lib/dns/results/doesntexist.tld.json -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.tld.json -o /var/lib/dns/results/sidn.tld.png -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/sidn.nl.json -o /var/lib/dns/results/sidn.nl.png -t /var/lib/dns/conf/root.key
     dnsviz graph -Tpng -P -r /var/lib/dns/results/doesntexist.tld.json -o /var/lib/dns/results/doesntexist.tld.png -t /var/lib/dns/conf/root.key
