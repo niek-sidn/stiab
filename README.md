@@ -286,8 +286,10 @@ Use the files in the repository for guidance.
     exit
 
 #### Now create an unsigned root zone file for adding TLDs and resigning
+    curl -s https://www.internic.net/domain/root.zone | sed -f prepare_root_zone.sed > files/knot-fakeroot/zones/root.zone
+    OR (manually):
     curl https://www.internic.net/domain/root.zone > files/signed-root.zone
-    mv files/signed-root.zone files/unsigned-root.zone
+    cp files/signed-root.zone files/unsigned-root.zone
     # NOTE: leaving arpa. for 172.20.0.0/24 alone.
     vim files/unsigned-root.zone
     :g/IN\sRRSIG/d                                           # remove all RRSIGs
