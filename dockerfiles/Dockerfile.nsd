@@ -12,6 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     bison \
     flex \
     coreutils \
+    curl \
     ca-certificates \
     git-core
 
