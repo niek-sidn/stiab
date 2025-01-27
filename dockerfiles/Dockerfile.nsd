@@ -17,6 +17,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
 
 RUN git clone https://github.com/NLnetLabs/nsd.git && \
     cd ./nsd && \
+    git checkout -b $(curl -s https://api.github.com/repos/nlnetlabs/nsd/tags | grep '"name": "NSD_.*_REL' | sort -r -t _ -n -k2 -k3 -k4 | head -1 | awk -F'"' '{print $4}') && \
     git submodule update --init && \
     autoreconf -fi && \
     ./configure --prefix=/ && \
