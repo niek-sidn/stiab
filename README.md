@@ -1,7 +1,7 @@
 # Stiab: DNSSEC Signer street-in-a-box
 
 
-> The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
+> Stiab (/stee-ab/). The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
 > In Dutch the word for street (straat) can be used to describe a series of connected or ordered items, like a straight in poker or in a game of dice.  
 > Here we create a straight of interconnected nameservers.
 
