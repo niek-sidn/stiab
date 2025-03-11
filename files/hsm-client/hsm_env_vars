@@ -1,0 +1,8 @@
+export NETHSM_HOST="172.20.0.18:8443"
+export ALLOW_ROOT=1
+export NETHSMOPTS="--no-verify-tls --host $NETHSM_HOST"
+export ADMINPASS="adminpass32768"
+export UNLOCKPASS="unlockpass32768"
+export OPERATORPASS="operatorpass32768"
+export METRICSPASS="metricspass32768"
+export BACKUPPASS="backuppass32768"

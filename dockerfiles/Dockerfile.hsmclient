@@ -19,6 +19,8 @@ COPY --chmod=600 files/hsm-client/bashrc /root/.bashrc
 RUN pipx install pynitrokey && \
     pipx ensurepath
 
+COPY --chmod=600 files/hsm-client/hsm_env_vars /root/hsm_env_vars
+COPY --chmod=755 files/hsm-client/provision_hsm.sh /root/provision_hsm.sh
 COPY --chmod=755 entrypoints/entrypoint_hsmclient.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 STOPSIGNAL SIGKILL

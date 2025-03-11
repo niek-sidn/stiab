@@ -125,6 +125,22 @@ services:
     networks:
       stiabnet:
         ipv4_address: 172.20.0.19
+  knot-secondlevel-hsmsigned:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.knotd
+    hostname: knot-secondlevel-hsmsigned
+    image: "knotd-stiab:latest"
+    depends_on:
+      - hsm-client
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.20
+    volumes:
+      - ./files/knot-secondlevel-hsmsigned/knot.conf:/etc/knot/knot.conf:ro
+      - ./files/knot-secondlevel-hsmsigned/journal:/var/lib/knot/journal:rw
+      - ./files/knot-secondlevel-hsmsigned/zones:/var/lib/knot/zones:rw
+      - ./files/knot-secondlevel-hsmsigned/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:/usr/local/lib/nethsm/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:ro
+      - ./files/knot-secondlevel-hsmsigned/p11nethsm.conf:/usr/local/etc/nitrokey/p11nethsm.conf:ro
 networks:
   stiabnet:
     enable_ipv6: false
