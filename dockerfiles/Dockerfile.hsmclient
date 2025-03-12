@@ -1,8 +1,7 @@
 # Build file for an HSM client in a container for use with Nitrokey NetHSM, or a container based on its docker image.
-# https://hub.docker.com/r/nitrokey/nethsm
-# Please see: https://www.nitrokey.com/products/nethsm
-# config and files must be supplied through volumes
-# docker build -t hsmclient-stiab:latest -f dockerfiles/Dockerfile.hsmiclient . &&  docker system prune -f && docker buildx prune -f
+# Also see https://hub.docker.com/r/nitrokey/nethsm
+# Also see: https://www.nitrokey.com/products/nethsm
+# docker build -t hsmclient-stiab:latest -f dockerfiles/Dockerfile.hsm-client . &&  docker system prune -f && docker buildx prune -f
 FROM ubuntu:latest
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
@@ -15,12 +14,12 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
 && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && find /var/log -type f -delete
 
 COPY --chmod=600 files/hsm-client/bashrc /root/.bashrc
+COPY --chmod=600 files/hsm-client/hsm_env_vars /root/hsm_env_vars
+COPY --chmod=755 files/hsm-client/provision_hsm.sh /root/provision_hsm.sh
+COPY --chmod=755 entrypoints/entrypoint_hsmclient.sh /entrypoint.sh
 
 RUN pipx install pynitrokey && \
     pipx ensurepath
 
-COPY --chmod=600 files/hsm-client/hsm_env_vars /root/hsm_env_vars
-COPY --chmod=755 files/hsm-client/provision_hsm.sh /root/provision_hsm.sh
-COPY --chmod=755 entrypoints/entrypoint_hsmclient.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 STOPSIGNAL SIGKILL

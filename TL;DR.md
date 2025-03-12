@@ -11,7 +11,7 @@
 
 ## Host
     docker compose up -d --build
-    docker exec -it stiab-dns-client-1 bash
+    docker compose exec -it dns-client bash
 
 ## Proof
     dig +multi +dnssec +cdflag soa sidn.nl. @172.20.0.15 | grep --color -e 'flags:.*cd' -e '^[[:space:]]*[[:digit:]]* [[:digit:]]* [[:digit:]]* .*\.$' -e '.*serial$' -e 'NOERROR' -e 'NXDOMAIN,' -e 'SERVFAIL' -e '^'
