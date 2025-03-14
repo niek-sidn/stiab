@@ -29,7 +29,7 @@ services:
     hostname: knot-signer
     image: "knotd-stiab:latest"
     depends_on:
-      - nsd-zoneloader
+      - nsd-pre-validator
     networks:
       stiabnet:
         ipv4_address: 172.20.0.11
