@@ -5,7 +5,7 @@ set -o pipefail # if anything in a pipe construction fails, quit
 ## Some verifiers cannot use stdin from 'NSD verifier-feed-zone: yes' directly, and need an
 ## actual file to verify. So we direct the stdin feed from NSD to a file.
 ## The path may surprise you, so keep reading.
-ZF=/var/lib/knot/zones/$VERIFY_ZONE.zone
+ZF=/var/tmp/$VERIFY_ZONE.zone
 echo "writing $VERIFY_ZONE to file $ZF"
 cat > $ZF                                  # read from stdin to file (in memory if not on volume)
 echo "writing $VERIFY_ZONE to file $ZF finished"
