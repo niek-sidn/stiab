@@ -1,7 +1,7 @@
 services:
   knot-zoneloader:
     build:
-      dockerfile: ./dockerfiles/Dockerfile.knot
+      dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-zoneloader
     image: "knot-stiab:latest"
     networks:
