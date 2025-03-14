@@ -25,7 +25,7 @@ checkzone2_pid="${pid}"
 ## kzonesign -v is a great multithreaded verifier, but it takes some work:
 ## a) it cannot take the zonefile on stdin (that is taken care of above with 'cat >').
 ## b) it takes its config from a configfile. By default /etc/knot/knot.conf.
-## To solve b) and avoid maintaining two knot.conf files, this nsd-validator
+## To solve b) and avoid maintaining two knot.conf files, this nsd-post-validator
 ## gets the official knot.conf from knot-signer, by volume in compose.yml.
 ## This way it gets the correct dnssec policy, but also the same number of
 ## signing-threads as knot-signer (which you may like or not) and also the

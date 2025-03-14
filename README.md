@@ -56,8 +56,8 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 |  name          |   function                                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------|
 |nsd-zoneloader  |Loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer. Please note: the verifier mechanism of NSD is not configured at this host, as it only applies to incoming XFRs, and not to zones configured as primary on this host.|
-|knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-validator|
-|nsd-validator   |Does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister. Please note: the validation/verifier mechanism of NSD only applies to incoming XFRs|
+|knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-post-validator|
+|nsd-post-validator   |Does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister. Please note: the validation/verifier mechanism of NSD only applies to incoming XFRs|
 |nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone|
 |unbound-recursor|Fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
 |knot-fakeroot   |Fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
@@ -76,7 +76,7 @@ Y(("`local zone
 edits`")) --> |edits| A
 A[NSD loader] --> |ixfr| B
 B[Knot signer] --> |ixfr| C
-C[NSD validator] --> |ixfr| D
+C[NSD post signing validator] --> |ixfr| D
 D[NSD dister] --> |ixfr| E
 E((public NS))
 F[unboud recursor] --> |queries| D
@@ -312,13 +312,13 @@ Use the files in the repository for guidance.
     cp files/unsigned-root.zone files/knot-fakeroot/zones/root.zone
 
 
-## nsd-validator
-    mkdir files/nsd-validator
-    mkdir files/nsd-validator/zones files/nsd-validator/keys
-    vim files/nsd-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-    # (files/nsd-validator/zones/tld.zone is created automatically after notify from knot-signer)
+## nsd-post-validator
+    mkdir files/nsd-post-validator
+    mkdir files/nsd-post-validator/zones files/nsd-post-validator/keys
+    vim files/nsd-post-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
+    # (files/nsd-post-validator/zones/tld.zone is created automatically after notify from knot-signer)
     # (using the same docker image as nsd-zoneloader so no build here)
-    docker run --rm -it --entrypoint bash -v ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
+    docker run --rm -it --entrypoint bash -v ./files/nsd-post-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-post-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
     nsd-control-setup -d /var/lib/stiab/keys/
     exit
@@ -327,7 +327,7 @@ Use the files in the repository for guidance.
     mkdir files/nsd-dister
     mkdir files/nsd-dister/zones files/nsd-dister/keys
     vim files/nsd-dister/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-    # (files/nsd-dister/zones/tld.zone is created automatically after notify from nsd-validator)
+    # (files/nsd-dister/zones/tld.zone is created automatically after notify from nsd-post-validator)
     # (using the same docker image as nsd-zoneloader so no build here)
     docker run --rm -it --entrypoint bash -v ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-dister/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
