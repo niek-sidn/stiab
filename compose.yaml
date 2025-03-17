@@ -9,7 +9,7 @@ services:
         ipv4_address: 172.20.0.9
     volumes:
       - ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro
-      - ./files/knot-zoneloader/zones/tld.zone:/var/lib/knot/zones/tld.zone:rw
+      - ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw
       - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
   nsd-zoneloader:
     build:
