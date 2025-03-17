@@ -6,7 +6,8 @@
 > Here we create a straight of interconnected nameservers.
 
 ## Goal:
-Deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
+Based on ideas and examples of a.o. Internetstiftelsen. 
+We deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
 We are taking the perspective of a DNS registry (keeper of a DNS top level domain, in other words: a ccTLD or gTLD (or sTLD/tTLD))
 This means that the levels above and below (DNS root and DNS lower levels) are simplified.
