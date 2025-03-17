@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-if [ "$HOSTNAME" != nsd-zoneloader ]; then
-   rm /var/lib/stiab/zones/* > /dev/null 2>&1
-fi
-rm /var/lib/stiab/zones/*.ixfr > /dev/null 2>&1
+rm /var/lib/stiab/zones/* > /dev/null 2>&1
 
 if [ "$HOSTNAME" == nsd-post-validator ]; then
    # Needed when nsd verify is used in combination with

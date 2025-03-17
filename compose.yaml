@@ -11,18 +11,6 @@ services:
       - ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro
       - ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw
       - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
-  nsd-zoneloader:
-    build:
-      dockerfile: ./dockerfiles/Dockerfile.nsd
-    hostname: nsd-zoneloader
-    image: "nsd-stiab:latest"
-    networks:
-      stiabnet:
-        ipv4_address: 172.20.0.10
-    volumes:
-      - ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro
-      - ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
-      - ./files/nsd-zoneloader/zones:/var/lib/stiab/zones:rw
   knot-signer:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd

@@ -55,14 +55,18 @@ Also for extra validation realism: a DNSSEC signing second level nameserver is s
 ## Components
 |  name          |   function                                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------|
-|nsd-zoneloader  |Loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: knot-signer. Please note: the verifier mechanism of NSD is not configured at this host, as it only applies to incoming XFRs, and not to zones configured as primary on this host.|
+|knot-zoneloader  |Loads unsigned zone of your TLD, supplies XFRs and notifies to the next in line nameserver: nsd-pre-validator.|
+|nsd-pre-validator   |Does DNS validation and supplies IXFRs to the next in line nameserver: knot-signer. Please note: the validation/verifier mechanism of NSD only applies to incoming XFRs|
 |knot-signer     |DNSSEC signer for TLD, supplies IXFRs to the next in line nameserver: nsd-post-validator|
 |nsd-post-validator   |Does DNSSEC validation and supplies IXFRs to the next in line nameserver: nsd-dister. Please note: the validation/verifier mechanism of NSD only applies to incoming XFRs|
 |nsd-dister      |Hidden primary that could theoretically supply IXFRs to your (anycasted) public nameserver setup. However, in this setup it functions as the source of authority for our own TLD. As such it is included as an NS for .tld in the (fake) root.zone|
 |unbound-recursor|Fake dns rooted recursor that enables validation with dig, delv, drill, dnsviz. We need that CD bit!!! root-hints: knot-fakeroot only, trust-anchor is our own .tld ksk's DS|
 |knot-fakeroot   |Fake dns rootserver, serves a dnssec-stripped, then dnssec resigned (with own keys) root.zone. This root.zone contains your TLD's (A, NS, DS) records.|
 |dns-client      |Here we do our digging, drilling, delving, vizzing.|
+|nitrokey-nethsm |Since we have no actual HSM, we use a containerize version of the NitroKey NetHSM, Many thanks to NitroKey for providing this.|
+|hsm-client      |Here we do our hsm configuring, NOTE: also needed to provision the nitrokey-nethsm container which cannot function without the hsm-client provisioning it!|
 |knot-secondlevel|Nameserver to serve a secondlevel domain under your TLD, it adds realism to your validations|
+|knot-secondlevel-hsmsigned|Nameserver to serve an HSM signed secondlevel domain under your TLD, it adds realism to your validations, and shows cdnskey functionality|
 
 ```mermaid
 ---
@@ -74,7 +78,8 @@ producing
 process`")) --> |e.g. rsync| A
 Y(("`local zone
 edits`")) --> |edits| A
-A[NSD loader] --> |ixfr| B
+A[Knot loader] --> |ixfr| J
+J[NSD pre signing validator] --> |ixfr| B
 B[Knot signer] --> |ixfr| C
 C[NSD post signing validator] --> |ixfr| D
 D[NSD dister] --> |ixfr| E
@@ -82,16 +87,21 @@ E((public NS))
 F[unboud recursor] --> |queries| D
 F --> |queries| H
 F --> |queries| I
+F --> |queries| K
 G[DNS client] --> |queries| F
 H[Fake DNS root]
 I["`Second level 
 domain NS`"]
+K["`Second level 
+domain NS
+HSM signed`"] --> |cds| A
 ```
 
 ## Serials
-**NOTE**: files/nsd-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging named as "remote serial"). Update this serial if you change the tld.zone file. After updating the zone file: `docker exec stiab-nsd-zoneloader-1 nsd-control reload tld`  
+**NOTE**: files/knot-zoneloader/zones/tld.zone holds the pre-signing serial (in the logging named as "remote serial"). Update this serial if you change the tld.zone file. After updating the zone file: `docker compose exec knot-zoneloader knotc zone-reload tld`  
 **NOTE**: knot-signer will sign, and thus increase the serial, but this is a separate serial from the pre-signing serial. The main reason for knot-signer to keep this separate serial is that RRSIGs expire and need regeneration, wether you changed the unsigned zone or not.  
 **NOTE**: repeated docker compose up/down's will repeatedly increment the post signing serial. This is because we keep the /var/lib/knot/keys/\*.mdb between restarts. Why not remove these files? Because this would also result in creating new keys at every docker compose up (and thus a new DS in the root dns zone, and the recursor). This is too inconvenient at the moment, with the configs being handcrafted. Another consequence of keeping Knotds \*.mdb files between restarts is that DNSSEC key roll times do not reset. They are linked to the key age from key creationwhich is recorded in the \*.mdb files. This means that an unexpected (but harmless) ZSK key roll could start immediately after deploy. This is for example visible as an extra zsk in DNSviz. Do not remove this extra key, Knotd is planning on using it in the near future.   
+**NOTE**: knot-secondlevel-hsmsigned *does* use the cdnskey mechanism to update the unsigned .tld zone. At start, and at ksk-roll. This means it can start and order the NetHSM to generate a fresh KSK and a ZSK without any manual work such as editing the .tld zonefile to copy-paste the DS for sidn-hsmsigned.tld into it.
 
 # Preparations before deployment
 ## host
@@ -213,9 +223,9 @@ If you are using an incus/lxd VM pull the files to your laptop:
     vim files/knot-fakeroot/zones/root.zone
     docker exec stiab-knot-fakeroot-1 knotc zone-reload .
 
-    # unsigned .tld on nsd-zoneloader (changes will survive compose down and up, DNSSEC signatures will not)
-    vim files/nsd-zoneloader/zones/tld.zone
-    docker exec stiab-nsd-zoneloader-1 nsd-control reload tld
+    # unsigned .tld on knot-zoneloader (changes will survive compose down and up, DNSSEC signatures will not)
+    vim files/knot-zoneloader/zones/tld.zone
+    docker exec stiab-knot-zoneloader-1 knotc zone-reload tld
     docker exec stiab-knot-signer-1 knotc zone-status tld
     docker exec stiab-knot-signer-1 keymgr tld list
     docker exec stiab-knot-signer-1 keymgr tld list -e iso
@@ -234,6 +244,8 @@ Use the files in the repository for guidance.
     mkdir files/knot-secondlevel
     mkdir files/knot-secondlevel/zones files/knot-secondlevel/journal
     vim files/knot-secondlevel/knot.conf
+    vim dockerfiles/Dockerfile.knotd
+    vim entrypoints/entrypoint_knotd.sh
     docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd .
     docker run --rm -it --entrypoint bash -v ./files/knot-secondlevel/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-secondlevel/keys:/var/lib/knot/keys:rw -v ./files/knot-secondlevel/zones:/var/lib/knot/zones:rw -v ./files/knot-secondlevel/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
@@ -243,25 +255,33 @@ Use the files in the repository for guidance.
     keymgr sidn.tld ds | grep '13 2' > /var/lib/knot/keys/ds.sidn.tld   # for tld zone
     exit
 
-## nsd-zoneloader
-    mkdir files/nsd-zoneloader
-    mkdir files/nsd-zoneloader/zones files/nsd-zoneloader/keys
-    vim files/nsd-zoneloader/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
-    vim files/nsd-zoneloader/zones/tld.zone  # include files/knot-secondlevel/keys/ds.sidn.tld and sidn.tld NS and glue
-    vim dockerfiles/Dockerfile.nsd
-    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
-    docker run --rm -it --entrypoint bash -v ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
+## knot-secondlevel-hsmsigned
+    mkdir files/knot-secondlevel-hsmsigned
+    mkdir files/knot-secondlevel-hsmsigned/zones files/knot-secondlevel-hsmsigned/journal
+    vim files/knot-secondlevel-hsmsigned/knot.conf
+    # (using the same docker image as knot-secondlevel so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/knot-secondlevel-hsmsigned/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-secondlevel-hsmsigned/keys:/var/lib/knot/keys:rw -v ./files/knot-secondlevel-hsmsigned/zones:/var/lib/knot/zones:rw -v ./files/knot-secondlevel-hsmsigned/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
-    nsd-control-setup -d /var/lib/stiab/keys/
+    chown --recursive knot:knot /var/lib/knot
+    exit
+
+## knot-zoneloader
+    mkdir files/knot-zoneloader
+    mkdir files/knot-zoneloader/zones files/knot-zoneloader/journal
+    vim files/knot-zoneloader/knot.conf
+    vim files/knot-zoneloader/zones/tld.zone  # include files/knot-secondlevel/keys/ds.sidn.tld and sidn(hsm-signed).tld NS and glue
+    # (using the same docker image as knot-secondlevel so no build here)
+    docker run --rm -it --entrypoint bash -v ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw -v ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw knot-stiab:latest
+
+    chown --recursive knot:knot /var/lib/knot
     exit
 
 ## knot-signer
     mkdir files/knot-signer
     mkdir files/knot-signer/zones files/knot-signer/journal
     vim files/knot-signer/knot.conf
-    # (files/knot-signer/zones/tld.zone is created automatically after notify from nsd-zoneloader)
-    # (if not hostname == knot-fakeroot/knot-secondlevel: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
-    vim dockerfiles/Dockerfile.knotd
+    # (files/knot-signer/zones/tld.zone is created automatically after notify from nsd-pre-validator)
+    # (if hostname == knot-signer: entrypoint_knotd.sh removes all files/knot-signer/zones files/knot-signer/journal content)
     # (using the same docker image as knot-secondlevel so no build here)
     docker run --rm -it --entrypoint bash -v ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-signer/keys:/var/lib/knot/keys:rw -v ./files/knot-signer/zones:/var/lib/knot/zones:rw -v ./files/knot-signer/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
@@ -312,12 +332,24 @@ Use the files in the repository for guidance.
     cp files/unsigned-root.zone files/knot-fakeroot/zones/root.zone
 
 
+## nsd-pre-validator
+    mkdir files/nsd-pre-validator
+    mkdir files/nsd-pre-validator/zones files/nsd-pre-validator/keys
+    vim files/nsd-pre-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
+    # (files/nsd-pre-validator/zones/tld.zone is created automatically after notify from knot-zoneloader)
+    vim entrypoints/entrypoint_nsd.sh
+    docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd .
+    docker run --rm -it --entrypoint bash -v ./files/nsd-pre-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-pre-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
+
+    nsd-control-setup -d /var/lib/stiab/keys/
+    exit
+
 ## nsd-post-validator
     mkdir files/nsd-post-validator
     mkdir files/nsd-post-validator/zones files/nsd-post-validator/keys
     vim files/nsd-post-validator/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
     # (files/nsd-post-validator/zones/tld.zone is created automatically after notify from knot-signer)
-    # (using the same docker image as nsd-zoneloader so no build here)
+    # (using the same docker image as nsd-pre-validator so no build here)
     docker run --rm -it --entrypoint bash -v ./files/nsd-post-validator/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-post-validator/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
     nsd-control-setup -d /var/lib/stiab/keys/
@@ -328,7 +360,7 @@ Use the files in the repository for guidance.
     mkdir files/nsd-dister/zones files/nsd-dister/keys
     vim files/nsd-dister/nsd.conf   # Note: zones and key/cert files under /var/lib/stiab/
     # (files/nsd-dister/zones/tld.zone is created automatically after notify from nsd-post-validator)
-    # (using the same docker image as nsd-zoneloader so no build here)
+    # (using the same docker image as nsd-pre-validator so no build here)
     docker run --rm -it --entrypoint bash -v ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro -v ./files/nsd-dister/keys:/var/lib/stiab/keys:rw nsd-stiab:latest
 
     nsd-control-setup -d /var/lib/stiab/keys/
@@ -342,6 +374,8 @@ Use the files in the repository for guidance.
     vim files/unbound-recursor/conf/unbound.conf.d
     vim files/unbound-recursor/conf/unbound.conf.d/remote-control.conf
     vim files/unbound-recursor/conf/unbound.conf.d/base.conf  # trust-anchor: see: cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*'
+    vim entrypoints/entrypoint_unbound.sh
+    vim dockerfiles/Dockerfile.unbound
     docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
     docker run --rm -it --entrypoint bash -v ./files/unbound-recursor/conf:/etc/unbound/:rw unbound-stiab:latest
 
@@ -354,9 +388,26 @@ Use the files in the repository for guidance.
     cat files/knot-fakeroot/keys/dnskey.root | grep '.\sDNSKEY\s257.*' > files/dns-client/conf/root.key
     vim files/dns-client/conf/root.key-delv  # same root.key, but differently packaged
     cp files/unbound-recursor/conf/fake-root.hints files/dns-client/conf/
+    vim dockerfiles/Dockerfile.dnsclient
     docker build -t dnsclient-stiab:latest -f dockerfiles/Dockerfile.dnsclient . &&  docker system prune -f && docker buildx prune -f
     # NOTE: if you are only interested in DNSviz output, you could maybe also use their official Docker image: https://github.com/dnsviz/dnsviz.
     # (a docker run serves no purpose here, after docker compose up -d do your dig/drill/delv-thang (see above))
+
+## nitrokey-nethsm
+    mkdir -p ./files/nitrokey-nethsm/data
+    (no Dockerfile, entrypoint or build)
+    docker run --rm -v ./files/nitrokey-nethsm/data:/data:rw docker.io/nitrokey/nethsm:testing
+    (run hsm-client to provision)
+
+## hsm-client
+    mkdir files/hsm-client
+    vim files/hsm-client/bashrc
+    vim files/hsm-client/hsm_env_vars      # all passwords you need for your hsm are here
+    vim files/hsm-client/provision_hsm.sh  # creates all users from hsm_env_vars data
+    vim entrypoints/entrypoint_hsmclient.sh
+    vim dockerfiles/Dockerfile.hsmclient
+    docker build -t hsmclient-stiab:latest -f dockerfiles/Dockerfile.hsmclient . &&  docker system prune -f && docker buildx prune -f
+    docker run --rm hsmclient-stiab:latest
 
 
 # EOF
