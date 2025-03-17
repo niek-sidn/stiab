@@ -1,23 +1,23 @@
 services:
-  nsd-zoneloader:
+  knot-zoneloader:
     build:
-      dockerfile: ./dockerfiles/Dockerfile.nsd
-    hostname: nsd-zoneloader
-    image: "nsd-stiab:latest"
+      dockerfile: ./dockerfiles/Dockerfile.knotd
+    hostname: knot-zoneloader
+    image: "knot-stiab:latest"
     networks:
       stiabnet:
-        ipv4_address: 172.20.0.10
+        ipv4_address: 172.20.0.9
     volumes:
-      - ./files/nsd-zoneloader/nsd.conf:/etc/nsd/nsd.conf:ro
-      - ./files/nsd-zoneloader/keys:/var/lib/stiab/keys:rw
-      - ./files/nsd-zoneloader/zones:/var/lib/stiab/zones:rw
+      - ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro
+      - ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw
+      - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
   knot-signer:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-signer
     image: "knotd-stiab:latest"
     depends_on:
-      - nsd-zoneloader
+      - nsd-pre-validator
     networks:
       stiabnet:
         ipv4_address: 172.20.0.11
@@ -39,10 +39,25 @@ services:
       - ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw
       - ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw
       - ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw
-  nsd-validator:
+  nsd-pre-validator:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd
-    hostname: nsd-validator
+    hostname: nsd-pre-validator
+    image: "nsd-stiab:latest"
+    depends_on:
+      - knot-zoneloader
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.21
+    volumes:
+      - ./files/nsd-pre-validator/nsd.conf:/etc/nsd/nsd.conf:ro
+      - ./files/nsd-pre-validator/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
+      - ./files/nsd-pre-validator/zones:/var/lib/stiab/zones:rw
+      - ./files/nsd-pre-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
+  nsd-post-validator:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.nsd
+    hostname: nsd-post-validator
     image: "nsd-stiab:latest"
     depends_on:
       - knot-signer
@@ -50,24 +65,24 @@ services:
       stiabnet:
         ipv4_address: 172.20.0.12
     volumes:
-      - ./files/nsd-validator/nsd.conf:/etc/nsd/nsd.conf:ro
-      - ./files/nsd-validator/keys:/var/lib/stiab/keys:rw
-      - ./files/nsd-validator/zones:/var/lib/stiab/zones:rw
+      - ./files/nsd-post-validator/nsd.conf:/etc/nsd/nsd.conf:ro
+      - ./files/nsd-post-validator/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
+      - ./files/nsd-post-validator/zones:/var/lib/stiab/zones:rw
       - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro  # Needed for ksignzone -v
-      - ./files/nsd-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
+      - ./files/nsd-post-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
   nsd-dister:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-dister
     image: "nsd-stiab:latest"
     depends_on:
-      - nsd-validator
+      - nsd-post-validator
     networks:
       stiabnet:
         ipv4_address: 172.20.0.14
     volumes:
       - ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro
-      - ./files/nsd-dister/keys:/var/lib/stiab/keys:rw
+      - ./files/nsd-dister/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
       - ./files/nsd-dister/zones:/var/lib/stiab/zones:rw
   unbound-recursor:
     build:

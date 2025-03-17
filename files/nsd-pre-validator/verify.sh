@@ -5,7 +5,7 @@ set -o pipefail # if anything in a pipe construction fails, quit
 ## Some verifiers cannot use stdin from 'NSD verifier-feed-zone: yes' directly, and need an
 ## actual file to verify. So we direct the stdin feed from NSD to a file.
 ## The path may surprise you, so keep reading.
-ZF=/var/lib/knot/zones/$VERIFY_ZONE.zone
+ZF=/var/tmp/$VERIFY_ZONE.zone
 echo "writing $VERIFY_ZONE to file $ZF"
 cat > $ZF                                  # read from stdin to file (in memory if not on volume)
 echo "writing $VERIFY_ZONE to file $ZF finished"
@@ -22,20 +22,6 @@ named-checkzone -i none $VERIFY_ZONE $ZF &   # '-i none': no post zone load chec
 pid=$!
 checkzone2_pid="${pid}"
 #
-## kzonesign -v is a great multithreaded verifier, but it takes some work:
-## a) it cannot take the zonefile on stdin (that is taken care of above with 'cat >').
-## b) it takes its config from a configfile. By default /etc/knot/knot.conf.
-## To solve b) and avoid maintaining two knot.conf files, this nsd-validator
-## gets the official knot.conf from knot-signer, by volume in compose.yml.
-## This way it gets the correct dnssec policy, but also the same number of
-## signing-threads as knot-signer (which you may like or not) and also the
-## same path to the zonefile as knot-signer (which is a bit awkward). Hence the
-## surprising /var/lib/knot/zones/... path above.
-echo 'Starting kzonesign -v'
-kzonesign -v $VERIFY_ZONE &
-pid=$!
-kzonesign_pid="${pid}"
-#
 ## Validns is is a great multithreaded verifier.
 echo 'Starting validns'
 validns -n 8 -s $ZF &
@@ -43,7 +29,7 @@ pid=$!
 validns_pid="${pid}"
 #
 ## Now wait for all backgrounded processes to finish
-for p in kzonesign_pid checkzone1_pid checkzone2_pid validns_pid
+for p in checkzone1_pid checkzone2_pid validns_pid
 do
     if wait "${!p}"; then
         echo "Process ${p%_*} success"
