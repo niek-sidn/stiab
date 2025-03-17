@@ -10,4 +10,4 @@ ns1.nic A       172.20.0.14
 bar.nic A       127.0.0.2
 foo.nic A       127.0.0.3
 ns1.sidn    A   172.20.0.17
-ns1.sidn-hsmsigned      A       172.20.0.2
+ns1.sidn-hsmsigned      A       172.20.0.20
