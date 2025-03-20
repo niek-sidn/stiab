@@ -85,7 +85,7 @@ B[Knot signer] --> |ixfr| C
 C[NSD post signing validator] --> |ixfr| D
 D[NSD dister] --> |ixfr| E
 E((public NS))
-F[unboud recursor] --> |queries| D
+F[Unboud recursor] --> |queries| D
 F --> |queries| H
 F --> |queries| I
 F --> |queries| K
