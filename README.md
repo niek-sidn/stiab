@@ -96,6 +96,8 @@ domain NS`"]
 K["`Second level 
 domain NS
 HSM signed`"] --> |cds| A
+L[HSM client] --> |setup| M
+M[NitroKey NetHSM] --> |signatures| K
 ```
 
 ## Serials
