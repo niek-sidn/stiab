@@ -261,7 +261,10 @@ Use the files in the repository for guidance.
 ## knot-secondlevel-hsmsigned
     mkdir files/knot-secondlevel-hsmsigned
     mkdir files/knot-secondlevel-hsmsigned/zones files/knot-secondlevel-hsmsigned/journal
-    vim files/knot-secondlevel-hsmsigned/knot.conf
+    cd files/knot-secondlevel-hsmsigned/
+    vim knot.conf
+    wget https://github.com/Nitrokey/nethsm-pkcs11/releases/download/v1.6.0/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so
+    vim p11nethsm.conf
     # (using the same docker image as knot-secondlevel so no build here)
     docker run --rm -it --entrypoint bash -v ./files/knot-secondlevel-hsmsigned/knot.conf:/etc/knot/knot.conf:ro -v ./files/knot-secondlevel-hsmsigned/keys:/var/lib/knot/keys:rw -v ./files/knot-secondlevel-hsmsigned/zones:/var/lib/knot/zones:rw -v ./files/knot-secondlevel-hsmsigned/journal:/var/lib/knot/journal:rw knotd-stiab:latest
 
