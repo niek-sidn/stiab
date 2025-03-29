@@ -3,7 +3,7 @@
 
 > Stiab (/stee-ab/). The name is an attempt at humorous "Dunglish" (Dutch wrongly translated into English).  
 > In Dutch the word for street (straat) can be used to describe a series of connected or ordered items, like a straight in poker or in a game of dice.  
-> Here we create a straight of interconnected nameservers.
+> Here we create a straight of interconnected nameservers. (or maybe it's more of a Full House)
 
 ## Goal:
 Based on ideas and examples of a.o. Internetstiftelsen, and standing on the shoulders of giants at NLnetLabs and CZ.NIC.  
