@@ -9,8 +9,8 @@
 Based on ideas and examples of a.o. Internetstiftelsen, and standing on the shoulders of giants at NLnetLabs and CZ.NIC.  
 We deploy a chain of nameservers creating a signed TLD DNS zone that can be DNSSEC validated with dig, delv, drill and dnsviz via a recursor.  
 Based on Ubuntu, Docker (build/compose), NSD, Knot, Unbound, DNSviz, etc.  
-We are taking the perspective of a DNS registry (keeper of a DNS top level domain, in other words: a ccTLD or gTLD (or sTLD/tTLD))
-This means that the levels above and below (DNS root and DNS lower levels) are simplified.
+We are taking the perspective of a DNS registry (keeper of a DNS top level domain, in other words: a ccTLD or gTLD (or sTLD/tTLD))  
+This means that the levels above and below (DNS root and DNS lower levels) have been simplified.
 
 After you have cloned this repo, you should be able to just run `docker compose up -d --build` and get a working dnssec signing setup.
 Provided your host has Git and Docker (see below for guidance).
