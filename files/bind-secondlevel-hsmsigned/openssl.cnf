@@ -1,0 +1,17 @@
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_init
+
+[provider_init]
+default = default_init
+pkcs11 = pkcs11_init
+
+[default_init]
+activate = 1
+
+[pkcs11_init]
+module = /usr/lib64/opensc-pkcs11.so
+pkcs11-module-path = /usr/local/lib/nethsm/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so
+pkcs11-module-load-behavior = early
+activate = 1

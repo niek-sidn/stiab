@@ -1,0 +1,24 @@
+FROM ubuntu:latest
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update && apt-get -y -qq install --no-install-recommends \
+    ca-certificates \
+    lsb-release \
+    wget \
+    gpg \
+&&  wget -O /tmp/isc-bind-ppa.asc 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x66150059ed19a2882208e278a36654a4fdd4630d' \
+&&  gpg -o /usr/share/keyrings/isc-bind-ppa.gpg --dearmor /tmp/isc-bind-ppa.asc \
+&&  echo "deb [signed-by=/usr/share/keyrings/isc-bind-ppa.gpg] https://ppa.launchpadcontent.net/isc/bind/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/isc-bind-ppa.list \
+&&  apt-get update && apt-get upgrade -y -qq && apt-get -y -qq install --no-install-recommends \
+    openssl \
+    bind9 \
+    pkcs11-provider \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && find /var/log -type f -delete \
+&& mkdir /run/bind \
+&& mkdir /var/lib/bind/keys /var/lib/bind/zones \
+&& chown --recursive bind:bind /run/bind/ /var/lib/bind /etc/bind
+
+COPY --chmod=755 entrypoints/entrypoint_bind.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/sbin/named","-c","/etc/bind/named.conf","-f","-g"]

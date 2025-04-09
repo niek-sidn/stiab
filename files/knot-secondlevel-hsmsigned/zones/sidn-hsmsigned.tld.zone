@@ -1,5 +1,5 @@
 $ORIGIN sidn-hsmsigned.tld.
-$TTL 30m
+$TTL 10m
 @	SOA	ns1 hostmaster 1000 5m 1m 10m 4m
 	NS	ns1
 	TXT	"This HSM signed second level domain does not really exist"

@@ -1,12 +1,12 @@
-$ORIGIN sidn.tld.
+$ORIGIN sidn-hsmsigned2.tld.
 $TTL 10m
 @	SOA	ns1 hostmaster 1000 5m 1m 10m 4m
 	NS	ns1
-	TXT	"This second level domain does not really exist"
+	TXT	"This HSM signed second level domain does not really exist"
 	MX	100	mx
 	A	127.0.0.1
         AAAA    ::1
-ns1	A	172.20.0.17
+ns1	A	172.20.0.20
 mx	A	127.0.0.1
 	AAAA	::1
 www	CNAME	@

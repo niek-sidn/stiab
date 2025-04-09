@@ -1,4 +1,5 @@
 services:
+
   knot-zoneloader:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -11,6 +12,7 @@ services:
       - ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro
       - ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw
       - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
+
   knot-signer:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -26,6 +28,7 @@ services:
       - ./files/knot-signer/journal:/var/lib/knot/journal:rw
       - ./files/knot-signer/zones:/var/lib/knot/zones:rw
       - ./files/knot-signer/keys:/var/lib/knot/keys:rw
+
   knot-fakeroot:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -39,6 +42,7 @@ services:
       - ./files/knot-fakeroot/journal:/var/lib/knot/journal:rw
       - ./files/knot-fakeroot/zones:/var/lib/knot/zones:rw
       - ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw
+
   nsd-pre-validator:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd
@@ -54,6 +58,7 @@ services:
       - ./files/nsd-pre-validator/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
       - ./files/nsd-pre-validator/zones:/var/lib/stiab/zones:rw
       - ./files/nsd-pre-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
+
   nsd-post-validator:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd
@@ -70,6 +75,7 @@ services:
       - ./files/nsd-post-validator/zones:/var/lib/stiab/zones:rw
       - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro  # Needed for ksignzone -v
       - ./files/nsd-post-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
+
   nsd-dister:
     build:
       dockerfile: ./dockerfiles/Dockerfile.nsd
@@ -84,6 +90,7 @@ services:
       - ./files/nsd-dister/nsd.conf:/etc/nsd/nsd.conf:ro
       - ./files/nsd-dister/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
       - ./files/nsd-dister/zones:/var/lib/stiab/zones:rw
+
   unbound-recursor:
     build:
       dockerfile: ./dockerfiles/Dockerfile.unbound
@@ -96,6 +103,7 @@ services:
         ipv4_address: 172.20.0.15
     volumes:
       - ./files/unbound-recursor/conf:/etc/unbound/:ro
+
   dns-client:
     build:
       dockerfile: ./dockerfiles/Dockerfile.dnsclient
@@ -109,6 +117,7 @@ services:
     volumes:
       - ./files/dns-client/conf:/var/lib/dns/conf:ro
       - ./files/dns-client/results:/var/lib/dns/results:rw
+
   knot-secondlevel:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -122,6 +131,7 @@ services:
       - ./files/knot-secondlevel/journal:/var/lib/knot/journal:rw
       - ./files/knot-secondlevel/zones:/var/lib/knot/zones:rw
       - ./files/knot-secondlevel/keys:/var/lib/knot/keys:rw
+
   nitrokey-nethsm:
     hostname: nitrokey-nethsm
     image: "docker.io/nitrokey/nethsm:testing"
@@ -130,6 +140,7 @@ services:
         ipv4_address: 172.20.0.18
     volumes:
       - ./files/nitrokey-nethsm/data:/data:rw
+
   hsm-client:
     build:
       dockerfile: ./dockerfiles/Dockerfile.hsmclient
@@ -140,6 +151,7 @@ services:
     networks:
       stiabnet:
         ipv4_address: 172.20.0.19
+
   knot-secondlevel-hsmsigned:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -156,7 +168,32 @@ services:
       - ./files/knot-secondlevel-hsmsigned/zones:/var/lib/knot/zones:rw
       - ./files/knot-secondlevel-hsmsigned/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:/usr/local/lib/nethsm/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:ro
       - ./files/knot-secondlevel-hsmsigned/p11nethsm.conf:/usr/local/etc/nitrokey/p11nethsm.conf:ro
+
+  bind-secondlevel-hsmsigned:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.bind
+    hostname: bind-secondlevel-hsmsigned
+    image: "bind-stiab:latest"
+    depends_on:
+      - hsm-client
+    environment:
+      OPENSSL_CONF: /usr/local/etc/openssl.cnf
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.22
+    volumes:
+      - ./files/bind-secondlevel-hsmsigned/named.conf:/etc/bind/named.conf:ro
+      - ./files/bind-secondlevel-hsmsigned/rndc.key:/etc/bind/rndc.key:ro
+      - ./files/bind-secondlevel-hsmsigned/zones:/var/lib/bind/zones:rw
+      - ./files/bind-secondlevel-hsmsigned/keys:/var/lib/bind/keys:rw
+      - ./files/bind-secondlevel-hsmsigned/rundir:/run/bind:rw
+      - ./files/bind-secondlevel-hsmsigned/openssl.cnf:/usr/local/etc/openssl.cnf
+      # using 2 hsm related files from knot-secondlevel-hsmsigned to avoid duplication
+      - ./files/knot-secondlevel-hsmsigned/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:/usr/local/lib/nethsm/nethsm-pkcs11-vv1.6.0-x86_64-ubuntu.24.04.so:ro
+      - ./files/knot-secondlevel-hsmsigned/p11nethsm.conf:/usr/local/etc/nitrokey/p11nethsm.conf:ro
+
 networks:
+
   stiabnet:
     enable_ipv6: false
     ipam:
