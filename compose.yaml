@@ -3,7 +3,7 @@ services:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-zoneloader
-    image: "knot-stiab:latest"
+    image: "knotd-stiab:latest"
     networks:
       stiabnet:
         ipv4_address: 172.20.0.9
