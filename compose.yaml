@@ -11,21 +11,46 @@ services:
       - ./files/knot-zoneloader/knot.conf:/etc/knot/knot.conf:ro
       - ./files/knot-zoneloader/zones:/var/lib/knot/zones:rw
       - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
-  knot-signer:
+#  knot-signer:
+#    build:
+#      dockerfile: ./dockerfiles/Dockerfile.knotd
+#    hostname: knot-signer
+#    image: "knotd-stiab:latest"
+#    depends_on:
+#      - nsd-pre-validator
+#    networks:
+#      stiabnet:
+#        ipv4_address: 172.20.0.11
+#    volumes:
+#      - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro
+#      - ./files/knot-signer/journal:/var/lib/knot/journal:rw
+#      - ./files/knot-signer/zones:/var/lib/knot/zones:rw
+#      - ./files/knot-signer/keys:/var/lib/knot/keys:r
+  nameshed-signer:
     build:
-      dockerfile: ./dockerfiles/Dockerfile.knotd
-    hostname: knot-signer
-    image: "knotd-stiab:latest"
+      dockerfile: ./dockerfiles/Dockerfile.nameshed
+    hostname: nameshed-signer
+    image: "nameshed-stiab:latest"
     depends_on:
       - nsd-pre-validator
+      - nameshed-hsm-relay
     networks:
       stiabnet:
         ipv4_address: 172.20.0.11
     volumes:
-      - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro
-      - ./files/knot-signer/journal:/var/lib/knot/journal:rw
-      - ./files/knot-signer/zones:/var/lib/knot/zones:rw
-      - ./files/knot-signer/keys:/var/lib/knot/keys:rw
+      - ./files/nameshed-signer/nameshed.conf:/nameshed/etc/nameshed.conf:ro
+      - ./files/nameshed-signer/approve_or_deny.sh:/tmp/approve_or_deny.sh
+      - ./files/nameshed-signer/approve_or_deny_signed.sh:/tmp/approve_or_deny_signed.sh
+  nameshed-hsm-relay:
+    build:
+      dockerfile: ./dockerfiles/Dockerfile.nameshed-hsm-relay
+    hostname: nameshed-hsm-relay
+    image: "nameshed-hsm-relaystiab:latest"
+    networks:
+      stiabnet:
+        ipv4_address: 172.20.0.180
+    volumes:
+      - ./files/nameshed-signer/relay.conf:/nameshed/etc/relay.conf:ro
   knot-fakeroot:
     build:
       dockerfile: ./dockerfiles/Dockerfile.knotd
@@ -60,7 +85,7 @@ services:
     hostname: nsd-post-validator
     image: "nsd-stiab:latest"
     depends_on:
-      - knot-signer
+      - nameshed-signer
     networks:
       stiabnet:
         ipv4_address: 172.20.0.12
@@ -68,7 +93,7 @@ services:
       - ./files/nsd-post-validator/nsd.conf:/etc/nsd/nsd.conf:ro
       - ./files/nsd-post-validator/keys:/var/lib/stiab/keys:rw    # not keys for dnssec, but for nsd-control
       - ./files/nsd-post-validator/zones:/var/lib/stiab/zones:rw
-      - ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro  # Needed for ksignzone -v
+      #- ./files/knot-signer/knot.conf:/etc/knot/knot.conf:ro  # Needed for ksignzone -v
       - ./files/nsd-post-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
   nsd-dister:
     build:
