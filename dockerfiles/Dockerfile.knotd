@@ -1,7 +1,7 @@
 # Build file for a very basic knotd container
 # config and files to run knotd must be supplied through volumes
 # docker build -t knotd-stiab:latest -f dockerfiles/Dockerfile.knotd . &&  docker system prune -f && docker buildx prune -f
-FROM ubuntu:latest
+FROM ubuntu:26.04
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt-get update && apt-get -y -qq install --no-install-recommends \

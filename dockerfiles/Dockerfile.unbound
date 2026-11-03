@@ -1,7 +1,7 @@
 # Build file for a very basic unbound container
 # config and files to run unbound must be supplied through volumes
 # docker build -t unbound-stiab:latest -f dockerfiles/Dockerfile.unbound . &&  docker system prune -f && docker buildx prune -f
-FROM ubuntu:latest
+FROM ubuntu:26.04
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \

@@ -1,6 +1,7 @@
 services:
   knot-zoneloader:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-zoneloader
     image: "knotd-stiab:latest"
@@ -13,6 +14,7 @@ services:
       - ./files/knot-zoneloader/journal:/var/lib/knot/journal:rw
   knot-signer:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-signer
     image: "knotd-stiab:latest"
@@ -28,6 +30,7 @@ services:
       - ./files/knot-signer/keys:/var/lib/knot/keys:rw
   knot-fakeroot:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-fakeroot
     image: "knotd-stiab:latest"
@@ -41,6 +44,7 @@ services:
       - ./files/knot-fakeroot/keys:/var/lib/knot/keys:rw
   nsd-pre-validator:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-pre-validator
     image: "nsd-stiab:latest"
@@ -56,6 +60,7 @@ services:
       - ./files/nsd-pre-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
   nsd-post-validator:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-post-validator
     image: "nsd-stiab:latest"
@@ -72,6 +77,7 @@ services:
       - ./files/nsd-post-validator/verify.sh:/etc/nsd/verify.sh:ro # Wrapper script to catch stdin and start other verifiers
   nsd-dister:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.nsd
     hostname: nsd-dister
     image: "nsd-stiab:latest"
@@ -86,6 +92,7 @@ services:
       - ./files/nsd-dister/zones:/var/lib/stiab/zones:rw
   unbound-recursor:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.unbound
     hostname: unbound-recursor
     image: "unbound-stiab:latest"
@@ -98,6 +105,7 @@ services:
       - ./files/unbound-recursor/conf:/etc/unbound/:ro
   dns-client:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.dnsclient
     hostname: dns-client
     image: "dnsclient-stiab:latest"
@@ -111,6 +119,7 @@ services:
       - ./files/dns-client/results:/var/lib/dns/results:rw
   knot-secondlevel:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-secondlevel
     image: "knotd-stiab:latest"
@@ -132,6 +141,7 @@ services:
       - ./files/nitrokey-nethsm/data:/data:rw
   hsm-client:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.hsmclient
     hostname: hsm-client
     image: "hsmclient-stiab:latest"
@@ -142,6 +152,7 @@ services:
         ipv4_address: 172.20.0.19
   knot-secondlevel-hsmsigned:
     build:
+      context: .
       dockerfile: ./dockerfiles/Dockerfile.knotd
     hostname: knot-secondlevel-hsmsigned
     image: "knotd-stiab:latest"
