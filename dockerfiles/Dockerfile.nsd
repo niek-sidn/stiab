@@ -1,7 +1,7 @@
 # Build file for a very basic nsd container
 # config and files to run nsd must be supplied through volumes
 # docker build -t nsd-stiab:latest -f dockerfiles/Dockerfile.nsd . &&  docker system prune -f && docker buildx prune -f
-FROM ubuntu:latest AS builder
+FROM ubuntu:26.04 AS builder
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
     build-essential \
@@ -14,7 +14,10 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     coreutils \
     curl \
     ca-certificates \
-    git-core
+    protobuf-c-compiler \
+    libfstrm-dev \
+    libprotobuf-c-dev \
+    git-core && apt-get clean
 
 RUN git clone https://github.com/NLnetLabs/nsd.git && \
     cd ./nsd && \
@@ -26,7 +29,7 @@ RUN git clone https://github.com/NLnetLabs/nsd.git && \
     make install
 
 
-FROM ubuntu:latest
+FROM ubuntu:26.04
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt-get update && apt-get upgrade -y && apt-get -y -qq install --no-install-recommends \
